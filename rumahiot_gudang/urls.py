@@ -21,7 +21,7 @@ from rumahiot_gudang.apps.store.views import mock_view
 urlpatterns = [
     # path('admin/', admin.site.urls),
     # mock url
-    url(r'tes$',mock_view),
+    # url(r'tes$',mock_view),
     url(r'store/',include('rumahiot_gudang.apps.store.urls')),
     url(r'retrieve/',include('rumahiot_gudang.apps.retrieve.urls'))
 ]

@@ -14,6 +14,18 @@ class GudangUtils():
             else:
                 return True
 
+    # Check if string contain float and its over 0:
+    def float_check(self,value_in_string):
+        try:
+            float(value_in_string)
+        except ValueError:
+            return False
+        else:
+            if float(value_in_string) < 0:
+                return False
+            else:
+                return True
+
 class ResponseGenerator():
     # generate error response in dict format
     def error_response_generator(self, code, message):

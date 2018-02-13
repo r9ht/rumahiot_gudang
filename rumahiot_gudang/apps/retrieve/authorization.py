@@ -14,11 +14,12 @@ class GudangSidikModule():
     #     'error' : error(string)
     # }
 
-    def get_user_uuid(self,token):
+    def get_user_data(self,token):
         data = {}
         # define the auth payload
         payload = {
-            'token': token
+            'token': token,
+            'email': '0'
         }
         response = requests.post(SIDIK_TOKEN_VALIDATION_ENDPOINT, data=payload)
         # check if the request success

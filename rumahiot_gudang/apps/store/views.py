@@ -1,6 +1,6 @@
 from django.shortcuts import render,HttpResponse
 from rumahiot_gudang.apps.store.mongodb import GudangMongoDB
-from rumahiot_gudang.settings import RUMAHIOT_GUDANG_DATABASE,RUMAHIOT_GUDANG_DEVICE_DATA_COLLECTION
+from rumahiot_gudang.settings import RUMAHIOT_GUDANG_DATABASE,RUMAHIOT_GUDANG_DEVICE_DATA_COLLECTION,RUMAHIOT_GUDANG_SENSOR_DETAIL_COLLECTION
 from django.views.decorators.csrf import csrf_exempt
 import json
 from datetime import datetime
@@ -34,14 +34,20 @@ def mock_view(request):
         "e6a2b64dd73d443aad765d2e7e8958d9",
     "8d3655e349b44845abaa03e93d5a3f38"
         ],
-        "device_uuid": "10",
+        "device_uuid": "8d3655e349b44845abaa03e93d5a3f38",
         "location": "12.12313,1212.1414",
+        "location_text" : "Hehehe",
     "read_key": "2277ccbac02f4679910de9bf9bbef74e",
     "time_added": 1212121.12,
         "user_uuid": "5083b3ed6d4341ff9d9a6f4f649f1f31",
         "write_key": "f454805a928543f48a15bcf3d4401999",
-        "device_name" : "Sensor Kosan"
+        "device_name" : "Mancing 2"
     }
+    data2 = {
+        'sensor_uuid' : 'e6a2b64dd73d443aad765d2e7e8958d9',
+        'sensor_name' : 'DHT 11'
+    }
+    #a.put_data(database=RUMAHIOT_GUDANG_DATABASE,collection=RUMAHIOT_GUDANG_SENSOR_DETAIL_COLLECTION,data=data2)
     #b = a.put_data(database=RUMAHIOT_GUDANG_DATABASE,collection='rumahiot_user_devices',data=data)
     #result = a.get_all_user_device_data()
     #result = a.get_user_device_list("5083b3ed6d4341ff9d9a6f4f649f1f31")
@@ -113,6 +119,10 @@ def store_device_data(request):
                         try:
                             # put the time into the data
                             j['time_added'] = datetime.now().timestamp()
+                            # Put the write key away
+                            j.pop('write_key', None)
+                            # Add the device_uuid
+                            j['device_uuid'] = device_data['device_uuid']
                         # for unknown error
                         except:
                             response_data = rg.error_response_generator(500, "Internal server error")
