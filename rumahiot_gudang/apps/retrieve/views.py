@@ -154,7 +154,7 @@ def retrieve_device_data(request):
                                 # If device_uuid isn't valid
                                 if device_data != None:
                                     # Make sure the device is owned by the user
-                                    if device_data != device_data['user_uuid']:
+                                    if user['user_uuid'] == device_data['user_uuid']:
                                         # -1 so the skip will be matched with the page:
                                         # Todo : Warning, skip will be slow at scale
                                         skip = (int(page) - 1) * int(limit)
@@ -171,6 +171,7 @@ def retrieve_device_data(request):
                                         data = {
                                             'page': page,
                                             'next_page': next_page,
+                                            'device_uuid':device_uuid ,
                                             'results': [],
                                             'results_count': results.count(True)
                                         }
@@ -179,6 +180,7 @@ def retrieve_device_data(request):
                                             # Pop sensitive data
                                             result.pop('_id', None)
                                             result.pop('user_uuid', None)
+                                            result.pop('device_uuid',None)
                                             data['results'].append(result)
                                         # return the result
                                         response_data = rg.data_response_generator(data)

@@ -1,8 +1,6 @@
 from pymongo import MongoClient
 from rumahiot_gudang.settings import RUMAHIOT_GUDANG_MONGO_HOST,RUMAHIOT_GUDANG_MONGO_PASSWORD,RUMAHIOT_GUDANG_MONGO_USERNAME,RUMAHIOT_GUDANG_DATABASE,RUMAHIOT_GUDANG_USERS_DEVICE_COLLECTION,RUMAHIOT_GUDANG_DEVICE_DATA_COLLECTION,RUMAHIOT_GUDANG_SENSOR_DETAIL_COLLECTION
 
-
-
 class GudangMongoDB():
 
     # initiate the client
@@ -86,3 +84,22 @@ class GudangMongoDB():
         col = db[RUMAHIOT_GUDANG_SENSOR_DETAIL_COLLECTION]
         result = col.find_one({'sensor_uuid':sensor_uuid})
         return result
+
+    # Get device detail using device_uuid
+    # input parameter : device_uuid(string)
+    def get_device_by_uuid(self, device_uuid):
+        db = self.client[RUMAHIOT_GUDANG_DATABASE]
+        col = db[RUMAHIOT_GUDANG_USERS_DEVICE_COLLECTION]
+        result = col.find_one({'device_uuid': device_uuid})
+        return result
+
+    # Update device sensor data
+    # input parameter : object_id(string), new_sensor_list(list)
+    def update_device_sensor(self, object_id, new_sensor_list):
+        db = self.client[RUMAHIOT_GUDANG_DATABASE]
+        col = db[RUMAHIOT_GUDANG_USERS_DEVICE_COLLECTION]
+        result = col.find_one_and_update({'_id': object_id},{'$set': {'device_sensors': new_sensor_list}})
+        return result
+
+
+
