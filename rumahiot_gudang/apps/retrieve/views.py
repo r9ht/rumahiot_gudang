@@ -37,6 +37,13 @@ def retrieve_device_list(request):
         else:
             direction = 1
 
+        # Normalize the get parameter
+
+        if len(page) == 0:
+            page = '1'
+        if len(limit) == 0:
+            limit = '0'
+
         # The page and limit result shouldn't empty (e.g. ?p=)
         # If that happen the parameter will be available but empty
         # Check the page and limit parameter
@@ -58,9 +65,15 @@ def retrieve_device_list(request):
                         # Todo : Warning, skip will be slow at scale
                         skip = (int(page) - 1) * int(limit)
                         results = db.get_user_device_list(user_uuid=user['user_uuid'],skip=skip,limit=int(limit),text=query,direction=direction)
-                        # Check if the next page exist
-                        # Todo : Find better way to do this
-                        next_results = db.get_user_device_list(user_uuid=user['user_uuid'],skip=(int(page) * int(limit)),limit=int(limit),text=query,direction=direction).count(True)
+                        # When there is no limit for the result , the next page should not called
+                        if limit != '0':
+                            # Check if the next page exist
+                            # Todo : Find better way to do this
+                            next_results = db.get_user_device_list(user_uuid=user['user_uuid'],
+                                                                   skip=(int(page) * int(limit)), limit=int(limit),
+                                                                   text=query, direction=direction).count(True)
+                        else:
+                            next_results = 0
                         # if there is next page return next page number
                         # if there is no next page return "-"
                         if next_results != 0 :
@@ -74,13 +87,43 @@ def retrieve_device_list(request):
                             'results' : [],
                             'results_count' : results.count(True)
                         }
-                        # put the result into the data
+
+                        # new data structure for device list from the result
+                        # the structure included everything so there is no need to call for another endpoint
+                        # Iterate through the mongo result
                         for result in results:
-                            # Pop sensitive data
-                            result.pop('_id', None)
-                            result.pop('user_uuid', None)
-                            data['results'].append(result)
-                        # return the result
+                            preparsed_result = {}
+                            preparsed_result['device_sensors'] = []
+                            preparsed_result['device_uuid'] = result['device_uuid']
+                            preparsed_result['position'] = result['position']
+                            preparsed_result['location_text'] = result['location_text']
+                            preparsed_result['read_key'] = result['read_key']
+                            preparsed_result['write_key'] = result['write_key']
+                            preparsed_result['device_name'] = result['device_name']
+                            # iterate through each user_sensor_uuids
+                            for user_sensor_uuid in result['user_sensor_uuids']:
+                                sensor_detail = {}
+                                user_sensor = db.get_user_sensor_by_uuid(user_sensor_uuid)
+                                sensor_detail['user_sensor_uuid'] = user_sensor['user_sensor_uuid']
+                                sensor_detail['user_sensor_name'] = user_sensor['user_sensor_name']
+                                sensor_detail['sensor_threshold'] = user_sensor['sensor_threshold']
+                                master_sensor = db.get_master_sensor_by_uuid(user_sensor['master_sensor_uuid'])
+                                sensor_detail['sensor_image'] = master_sensor['master_sensor_image']
+                                sensor_detail['master_sensor_name'] = master_sensor['master_sensor_name']
+                                # get lastest data value
+                                # take the first element, as the result length is one, by iterating over mongo cursor (as it cannot be accessed directly with index)
+                                device_latest_datas = db.get_n_latest_device_data(result['device_uuid'], 1)
+                                for device_latest_data in device_latest_datas:
+                                    for sensor_data in device_latest_data['sensor_datas']:
+                                        if sensor_data['user_sensor_uuid'] == user_sensor['user_sensor_uuid']:
+                                            sensor_detail['latest_value'] = sensor_data['user_sensor_value']
+                                # Add detail about sensor unit convertion for easier api call
+                                sensor_detail['unit_name'] = master_sensor['master_sensor_default_unit_name']
+                                sensor_detail['unit_symbol'] = master_sensor['master_sensor_default_unit_symbol']
+                                preparsed_result['device_sensors'].append(sensor_detail)
+
+                            data['results'].append(preparsed_result)
+
                         response_data = rg.data_response_generator(data)
                         return HttpResponse(json.dumps(response_data), content_type="application/json", status=200)
                     else:
@@ -128,6 +171,15 @@ def retrieve_device_data(request):
         else:
             direction = 1
 
+        # Normalize the blank get parameter
+        # Todo : check normalization for order value
+
+        if len(page) == 0:
+            page = '1'
+        if len(limit) == 0:
+            limit = '0'
+
+
         # The page and limit result shouldn't empty (e.g. ?p=)
         # The parameter will be available but empty
         # Check the page and limit parameter
@@ -159,33 +211,63 @@ def retrieve_device_data(request):
                                         # Todo : Warning, skip will be slow at scale
                                         skip = (int(page) - 1) * int(limit)
                                         results = db.get_device_data(device_uuid=device_uuid,skip=skip,limit=int(limit),direction=direction,from_date=float(from_date),to_date=float(to_date))
-                                        # Check if the next page exist
-                                        # Todo : Find better way to do this
-                                        next_results = db.get_device_data(device_uuid=device_uuid,skip=(int(page) * int(limit)),limit=int(limit),direction=direction,from_date=float(from_date),to_date=float(to_date)).count(True)
+
+                                        if limit != '0':
+                                            # Check if the next page exist
+                                            # Todo : Find better way to do this
+                                            next_results = db.get_device_data(device_uuid=device_uuid,
+                                                                              skip=(int(page) * int(limit)),
+                                                                              limit=int(limit), direction=direction,
+                                                                              from_date=float(from_date),
+                                                                              to_date=float(to_date)).count(True)
+                                        else:
+                                            next_results = 0
                                         # if there is next page return next page number
                                         # if there is no next page return "-"
                                         if next_results != 0:
                                             next_page = str(int(page) + 1)
                                         else:
                                             next_page = "-"
+
+                                        # New result structure for easier parsing in client side
+                                        preparsed_results = []
+                                        # Temp list for storing the sensor_uuid
+                                        sensor_uuids = []
+                                        # list for storing sensor value details
+                                        sensor_values = {}
+                                        for result in results:
+                                            for sensor_data in result['sensor_datas']:
+                                                if sensor_data['user_sensor_uuid'] not in sensor_uuids:
+                                                    sensor_uuids.append(sensor_data['user_sensor_uuid'])
+                                                    # Create new key using sensor_uuid
+                                                    sensor_values[sensor_data['user_sensor_uuid']] = []
+                                                sensor_value = {
+                                                    'value': sensor_data['user_sensor_value'],
+                                                    'time_added': result['time_added']
+                                                }
+                                                sensor_values[sensor_data['user_sensor_uuid']].append(sensor_value)
+
+                                        for sensor_uuid in sensor_uuids:
+                                            sensor_result = {
+                                                'sensor_uuid': sensor_uuid,
+                                                'sensor_values': sensor_values[sensor_uuid]
+                                            }
+                                            preparsed_results.append(sensor_result)
+
                                         data = {
                                             'page': page,
                                             'next_page': next_page,
-                                            'device_uuid':device_uuid ,
-                                            'results': [],
-                                            'results_count': results.count(True)
+                                            'device_uuid': device_uuid,
+                                            'results': preparsed_results,
+                                            'result_per_sensor_count': results.count(True),
+                                            'listed_sensor_count': len(sensor_uuids)
                                         }
-                                        # put the result into the data
-                                        for result in results:
-                                            # Pop sensitive data
-                                            result.pop('_id', None)
-                                            result.pop('user_uuid', None)
-                                            result.pop('device_uuid',None)
-                                            data['results'].append(result)
+
                                         # return the result
                                         response_data = rg.data_response_generator(data)
                                         return HttpResponse(json.dumps(response_data), content_type="application/json",
                                                             status=200)
+
                                     else:
                                         # Return the same message as invalid deice_uuid to obsofucate the device ownership
                                         response_data = rg.error_response_generator(400, "Invalid device UUID")
@@ -211,36 +293,6 @@ def retrieve_device_data(request):
             else:
                 response_data = rg.error_response_generator(400, token['error'])
                 return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
-
-
-def retrieve_sensor_data(request):
-    # Gudang class
-    rg = ResponseGenerator()
-    requtils = RequestUtils()
-    auth = GudangSidikModule()
-    db = GudangMongoDB()
-    gutils = GudangUtils()
-    if request.method != "GET":
-        response_data = rg.error_response_generator(400, "Bad request method")
-        return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
-    else:
-        # sensor_uuid
-        sensor_uuid = request.GET.get('sensor_uuid', '')
-        if len(sensor_uuid) != 0:
-            data = db.get_sensor_detail(sensor_uuid=sensor_uuid)
-            if data != None:
-                # Pop the _id
-                data.pop('_id',None)
-                # return the result
-                response_data = rg.data_response_generator(data)
-                return HttpResponse(json.dumps(response_data), content_type="application/json",
-                                    status=200)
-            else:
-                response_data = rg.error_response_generator(400, "Invalid Sensor UUID")
-                return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
-        else:
-            response_data = rg.error_response_generator(400, "Please specify the Sensor UUID")
-            return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
 
 
 

@@ -1,5 +1,13 @@
 from pymongo import MongoClient
-from rumahiot_gudang.settings import RUMAHIOT_GUDANG_MONGO_HOST,RUMAHIOT_GUDANG_MONGO_PASSWORD,RUMAHIOT_GUDANG_MONGO_USERNAME,RUMAHIOT_GUDANG_DATABASE,RUMAHIOT_GUDANG_USERS_DEVICE_COLLECTION,RUMAHIOT_GUDANG_DEVICE_DATA_COLLECTION,RUMAHIOT_GUDANG_SENSOR_DETAIL_COLLECTION
+from rumahiot_gudang.settings import RUMAHIOT_GUDANG_MONGO_HOST,\
+    RUMAHIOT_GUDANG_MONGO_PASSWORD,\
+    RUMAHIOT_GUDANG_MONGO_USERNAME,\
+    RUMAHIOT_GUDANG_DATABASE,\
+    RUMAHIOT_GUDANG_USERS_DEVICE_COLLECTION,\
+    RUMAHIOT_GUDANG_DEVICE_DATA_COLLECTION,\
+    RUMAHIOT_GUDANG_SENSOR_DETAIL_COLLECTION,\
+    RUMAHIOT_GUDANG_MASTER_SENSORS_COLLECTION,\
+    RUMAHIOT_GUDANG_USER_SENSORS_COLLECTION
 
 class GudangMongoDB():
 
@@ -93,13 +101,33 @@ class GudangMongoDB():
         result = col.find_one({'device_uuid': device_uuid})
         return result
 
-    # Update device sensor data
-    # input parameter : object_id(string), new_sensor_list(list)
-    def update_device_sensor(self, object_id, new_sensor_list):
+    # get user sensor using user_sensor_uuid
+    # input parameter: user_sensor_uuid(string)
+    def get_user_sensor_by_uuid(self, user_sensor_uuid):
         db = self.client[RUMAHIOT_GUDANG_DATABASE]
-        col = db[RUMAHIOT_GUDANG_USERS_DEVICE_COLLECTION]
-        result = col.find_one_and_update({'_id': object_id},{'$set': {'device_sensors': new_sensor_list}})
+        col = db[RUMAHIOT_GUDANG_USER_SENSORS_COLLECTION]
+        result = col.find_one({'user_sensor_uuid': user_sensor_uuid})
         return result
 
+    # get master sensor using master_sensor_uuid
+    # input parameter: master_sensor_uuid(string)
+    def get_master_sensor_by_uuid(self, user_sensor_uuid):
+        db = self.client[RUMAHIOT_GUDANG_DATABASE]
+        col = db[RUMAHIOT_GUDANG_MASTER_SENSORS_COLLECTION]
+        result = col.find_one({'master_sensor_uuid': user_sensor_uuid})
+        return result
 
+    # get n latest device data
+    # input parameter : device_uuid(string), n (integer)
+    def get_n_latest_device_data(self, device_uuid, n):
+        db = self.client[RUMAHIOT_GUDANG_DATABASE]
+        col = db[RUMAHIOT_GUDANG_DEVICE_DATA_COLLECTION]
+        results = col.find({'device_uuid': device_uuid}).sort([("_id",-1)]).limit(n)
+        return results
 
+    # update user sensor threshold
+    # input parameter
+    def update_user_sensor_threshold(self, object_id, new_threshold_value):
+        db = self.client[RUMAHIOT_GUDANG_DATABASE]
+        col = db[RUMAHIOT_GUDANG_USER_SENSORS_COLLECTION]
+        col.update_one({'_id' : object_id}, {'$set':{'sensor_threshold': new_threshold_value}})

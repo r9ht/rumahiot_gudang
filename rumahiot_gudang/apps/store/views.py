@@ -103,9 +103,9 @@ def store_device_data(request):
                         else:
                             # make sure the sensor data type is correct
                             # str for device_sensor_uuid and float for device_sensor_value
-                            if type(s.device_sensor_uuid) is str and gutils.float_check(s.device_sensor_value):
+                            if type(s.user_sensor_uuid) is str and gutils.float_check(s.user_sensor_value):
                                 # Append the uuid from request to comapre with the one in user_device document
-                                sensor_list.append(s.device_sensor_uuid)
+                                sensor_list.append(s.user_sensor_uuid)
                                 pass
                             else:
                                 response_data = rg.error_response_generator(400, "Incorrect field type")
@@ -113,7 +113,7 @@ def store_device_data(request):
                                                     status=400)
 
                     # Sensor list from corresponding device
-                    db_sensor_list = [sensor['sensor_uuid'] for sensor in device_data['device_sensors']]
+                    db_sensor_list = [sensor for sensor in device_data['user_sensor_uuids']]
 
                     # Use sort to make sure both data in the same order
 

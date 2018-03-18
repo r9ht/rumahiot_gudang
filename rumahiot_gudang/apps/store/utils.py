@@ -9,7 +9,7 @@ class GudangUtils():
         except ValueError:
             return False
         else:
-            if int(value_in_string) <= 0 :
+            if int(value_in_string) < 0 :
                 return False
             else:
                 return True

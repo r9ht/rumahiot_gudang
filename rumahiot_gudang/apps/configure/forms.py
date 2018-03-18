@@ -7,7 +7,6 @@ class EmailLoginForm(forms.Form):
     password = forms.CharField(required=True,max_length=128)
 
 class UpdateDeviceSensorThresholdForm(forms.Form):
-    device_uuid = forms.CharField(required=True,max_length=128)
-    sensor_uuid = forms.CharField(required=True,max_length=128)
+    user_sensor_uuid = forms.CharField(required=True,max_length=128)
     new_threshold = forms.CharField(required=True,max_length=32)
 
