@@ -1,8 +1,10 @@
 # This section provide Sidik authentication methods for RumahIoT services
 import requests
+
 from rumahiot_gudang.settings import SIDIK_TOKEN_VALIDATION_ENDPOINT
 
-class GudangSidikModule():
+
+class GudangSidikModule:
     # validate jwt token using Sidik service and return user uuid if the token is valid
     # input parameter : token (string)
     # return :  data['user_uuid'] = user_uuid, when the token is valid (string)
@@ -14,7 +16,7 @@ class GudangSidikModule():
     #     'error' : error(string)
     # }
 
-    def get_user_data(self,token):
+    def get_user_data(self, token):
         data = {}
         # define the auth payload
         payload = {
@@ -33,5 +35,3 @@ class GudangSidikModule():
             data['user_uuid'] = None
             data['error'] = response.json()['error']['message']
             return data
-
-

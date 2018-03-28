@@ -15,19 +15,17 @@ import os
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/2.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
 # We dont need this thing
-#SECRET_KEY = '0g(tuzd(e*hod$l!*35#(nwux!jyx*#bxsx_reg77vcmo-7iqq'
+# SECRET_KEY = '0g(tuzd(e*hod$l!*35#(nwux!jyx*#bxsx_reg77vcmo-7iqq'
 SECRET_KEY = ' '
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
 ALLOWED_HOSTS = ['*']
-
 
 # Application definition
 
@@ -73,7 +71,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'rumahiot_gudang.wsgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/2.0/ref/settings/#databases
 DATABASES = {
@@ -82,7 +79,6 @@ DATABASES = {
     #     'NAME': 'my_database'
     # }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/2.0/ref/settings/#auth-password-validators
@@ -102,7 +98,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/2.0/topics/i18n/
 # todo : check for time in aws
@@ -117,7 +112,6 @@ USE_L10N = True
 
 USE_TZ = True
 
-
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/2.0/howto/static-files/
 
@@ -130,14 +124,16 @@ CORS_ORIGIN_ALLOW_ALL = True
 
 # TODO : Change mongo port, add auth, and add allowed ip range
 
-RUMAHIOT_GUDANG_MONGO_USERNAME = os.environ.get('GUDANG_MONGO_USERNAME','')
-RUMAHIOT_GUDANG_MONGO_PASSWORD = os.environ.get('GUDANG_MONGO_PASSWORD','')
-RUMAHIOT_GUDANG_MONGO_HOST = os.environ.get('GUDANG_MONGO_HOST','')
-RUMAHIOT_GUDANG_MONGO_PORT = os.environ.get('GUDANG_MONGO_PORT','')
-RUMAHIOT_GUDANG_DATABASE = os.environ.get('GUDANG_DATABASE','')
-RUMAHIOT_GUDANG_USERS_DEVICE_COLLECTION = os.environ.get('GUDANG_USERS_DEVICE_COLLECTION','')
-RUMAHIOT_GUDANG_DEVICE_DATA_COLLECTION = os.environ.get('GUDANG_DEVICE_DATA_COLLECTION','')
-RUMAHIOT_GUDANG_SENSOR_DETAIL_COLLECTION = os.environ.get('GUDANG_SENSOR_DETAIL_COLLECTION','')
-RUMAHIOT_GUDANG_USER_SENSORS_COLLECTION = os.environ.get('RUMAHIOT_GUDANG_USER_SENSORS_COLLECTION','')
-RUMAHIOT_GUDANG_MASTER_SENSORS_COLLECTION = os.environ.get('RUMAHIOT_GUDANG_MASTER_SENSORS_COLLECTION','')
-SIDIK_TOKEN_VALIDATION_ENDPOINT = os.environ.get('SIDIK_TOKEN_VALIDATION_ENDPOINT','')
+RUMAHIOT_GUDANG_MONGO_USERNAME = os.environ.get('GUDANG_MONGO_USERNAME', '')
+RUMAHIOT_GUDANG_MONGO_PASSWORD = os.environ.get('GUDANG_MONGO_PASSWORD', '')
+RUMAHIOT_GUDANG_MONGO_HOST = os.environ.get('GUDANG_MONGO_HOST', '')
+RUMAHIOT_GUDANG_MONGO_PORT = os.environ.get('GUDANG_MONGO_PORT', '')
+RUMAHIOT_GUDANG_DATABASE = os.environ.get('GUDANG_DATABASE', '')
+RUMAHIOT_GUDANG_USERS_DEVICE_COLLECTION = os.environ.get('GUDANG_USERS_DEVICE_COLLECTION', '')
+RUMAHIOT_GUDANG_DEVICE_DATA_COLLECTION = os.environ.get('GUDANG_DEVICE_DATA_COLLECTION', '')
+RUMAHIOT_GUDANG_SENSOR_DETAIL_COLLECTION = os.environ.get('GUDANG_SENSOR_DETAIL_COLLECTION', '')
+RUMAHIOT_GUDANG_USER_SENSORS_COLLECTION = os.environ.get('RUMAHIOT_GUDANG_USER_SENSORS_COLLECTION', '')
+RUMAHIOT_GUDANG_MASTER_SENSORS_COLLECTION = os.environ.get('RUMAHIOT_GUDANG_MASTER_SENSORS_COLLECTION', '')
+RUMAHIOT_GUDANG_SUPPORTED_BOARD_COLLECTION = os.environ.get('RUMAHIOT_GUDANG_SUPPORTED_BOARD_COLLECTION', '')
+SIDIK_TOKEN_VALIDATION_ENDPOINT = os.environ.get('SIDIK_TOKEN_VALIDATION_ENDPOINT', '')
+RUMAHIOT_SURAT_API_KEY = os.environ.get('RUMAHIOT_SURAT_API_KEY', '')

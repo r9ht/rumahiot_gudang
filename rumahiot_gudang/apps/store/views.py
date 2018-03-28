@@ -1,11 +1,14 @@
-from django.shortcuts import render,HttpResponse
-from rumahiot_gudang.apps.store.mongodb import GudangMongoDB
-from rumahiot_gudang.settings import RUMAHIOT_GUDANG_DATABASE,RUMAHIOT_GUDANG_DEVICE_DATA_COLLECTION,RUMAHIOT_GUDANG_SENSOR_DETAIL_COLLECTION
-from django.views.decorators.csrf import csrf_exempt
 import json
 from datetime import datetime
-from rumahiot_gudang.apps.store.utils import RequestUtils,ResponseGenerator, GudangUtils
+
+from django.shortcuts import HttpResponse
+from django.views.decorators.csrf import csrf_exempt
+
+from rumahiot_gudang.apps.store.mongodb import GudangMongoDB
 from rumahiot_gudang.apps.store.resource import DeviceDataResource, SensorDataResource
+from rumahiot_gudang.apps.store.utils import ResponseGenerator, GudangUtils
+from rumahiot_gudang.settings import RUMAHIOT_GUDANG_DATABASE, RUMAHIOT_GUDANG_DEVICE_DATA_COLLECTION
+
 
 # Create your views here.
 
@@ -47,19 +50,17 @@ def mock_view(request):
     #     'sensor_uuid' : 'e6a2b64dd73d443aad765d2e7e8958d9',
     #     'sensor_name' : 'DHT 11'
     # }
-    #a.put_data(database=RUMAHIOT_GUDANG_DATABASE,collection=RUMAHIOT_GUDANG_SENSOR_DETAIL_COLLECTION,data=data2)
-    #b = a.put_data(database=RUMAHIOT_GUDANG_DATABASE,collection='rumahiot_user_devices',data=data)
-    #result = a.get_all_user_device_data()
-    #result = a.get_user_device_list("5083b3ed6d4341ff9d9a6f4f649f1f31")
+    # a.put_data(database=RUMAHIOT_GUDANG_DATABASE,collection=RUMAHIOT_GUDANG_SENSOR_DETAIL_COLLECTION,data=data2)
+    # b = a.put_data(database=RUMAHIOT_GUDANG_DATABASE,collection='rumahiot_user_devices',data=data)
+    # result = a.get_all_user_device_data()
+    # result = a.get_user_device_list("5083b3ed6d4341ff9d9a6f4f649f1f31")
     # for a in result:
     #     print(a)
-
 
 
 # Handle request sent by device
 @csrf_exempt
 def store_device_data(request):
-
     # Gudang classes
     rg = ResponseGenerator()
     # Construct sensor_list from request and compare it with the one in the user_device document
@@ -77,7 +78,7 @@ def store_device_data(request):
             gutils = GudangUtils()
 
         except TypeError:
-            response_data = rg.error_response_generator(400,"One of the request inputs is not valid")
+            response_data = rg.error_response_generator(400, "One of the request inputs is not valid")
             return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
         except ValueError:
             response_data = rg.error_response_generator(400, "Malformed JSON")
@@ -87,7 +88,7 @@ def store_device_data(request):
             # str for write_key and list for sensor_datas
             if type(d.write_key) is str and type(d.sensor_datas) is list:
                 # check the write key
-                device_data = db.get_user_device_data(key=d.write_key,key_type="w")
+                device_data = db.get_user_device_data(key=d.write_key, key_type="w")
                 if device_data != None:
                     # Check the data structure and make sure the sensor exist in user device
                     for data in d.sensor_datas:
@@ -103,7 +104,7 @@ def store_device_data(request):
                         else:
                             # make sure the sensor data type is correct
                             # str for device_sensor_uuid and float for device_sensor_value
-                            if type(s.user_sensor_uuid) is str and gutils.float_check(s.user_sensor_value):
+                            if type(s.user_sensor_uuid) is str and (type(s.user_sensor_value) is int or type(s.user_sensor_value) is float):
                                 # Append the uuid from request to comapre with the one in user_device document
                                 sensor_list.append(s.user_sensor_uuid)
                                 pass
@@ -134,10 +135,20 @@ def store_device_data(request):
                             response_data = rg.error_response_generator(500, "Internal server error")
                             return HttpResponse(json.dumps(response_data), content_type="application/json", status=500)
                         else:
-                            response = db.put_data(database=RUMAHIOT_GUDANG_DATABASE,collection=RUMAHIOT_GUDANG_DEVICE_DATA_COLLECTION,data=j)
+                            # Put the data first
+                            response = db.put_data(database=RUMAHIOT_GUDANG_DATABASE,
+                                                   collection=RUMAHIOT_GUDANG_DEVICE_DATA_COLLECTION, data=j)
+                            # Todo : Find a better way to do this (might be slow at scale)
+                            # Check the value of each sensor
+                            for sensor_data in j['sensor_datas']:
+                                # Todo : Check the output and put it in the log
+                                threshold_check_success = gutils.check_sensor_threshold(user_sensor_uuid=sensor_data['user_sensor_uuid'],
+                                                                                        sensor_value=sensor_data['user_sensor_value'])
+
                             if response != None:
                                 response_data = rg.success_response_generator(200, "Device data successfully submitted")
-                                return HttpResponse(json.dumps(response_data), content_type="application/json", status=200)
+                                return HttpResponse(json.dumps(response_data), content_type="application/json",
+                                                    status=200)
                             else:
                                 # If the mongodb server somehow didn't return the object id
                                 response_data = rg.error_response_generator(500, "Internal server error")
@@ -149,15 +160,6 @@ def store_device_data(request):
                 else:
                     response_data = rg.error_response_generator(400, "Invalid Write Key")
                     return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
-
             else:
                 response_data = rg.error_response_generator(400, "Incorrect field type")
                 return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
-
-
-
-
-
-
-
-
