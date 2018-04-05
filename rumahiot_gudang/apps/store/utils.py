@@ -1,4 +1,8 @@
 from rumahiot_gudang.apps.store.mongodb import GudangMongoDB
+from rumahiot_gudang.apps.sidik_module.authentication import GudangSidikModule
+from datetime import datetime
+from rumahiot_gudang.apps.surat_module.send_email import GudangSuratModule
+import threading
 
 class GudangUtils:
 
@@ -25,22 +29,40 @@ class GudangUtils:
 
     # Check current sensor value against the threshold and  current_above_threshold status
     # Logic :
-    # - if the sensor value is higher than threshold then :
-    #     > if the currently_above_threshold is True then :
-    #         >> log the information (no notification)
-    #     > else:
-    #         >> log the information
-    #         >> send notification (Android & email) -> Value above threshold
-    #         >> set currently_above_threshold to True
-    # - else:
-    #     > if the currently_above_threshold is True then :
-    #         >> log the detail
-    #         >> send notification (android & email) -> value is normal again
-    #         >> set currently_above_threshold to false
-    #     > else
-    #         >> the information doesnt need to be logged (no notification)
+    # If the threshold is enabled
+    #  if threshold_dircetion == "1:
+    #   - if the sensor value is higher than threshold then :
+    #        > if the currently_over_threshold is True then :
+    #             >> log the information (no notification)
+    #        > else:
+    #             >> log the information
+    #             >> send notification (Android & email) -> Value above threshold
+    #           >> set currently_over_threshold to True
+    #   - else:
+    #         > if the currently_over_threshold is True then :
+    #             >> log the detail
+    #             >> send notification (android & email) -> value is normal again
+    #             >> set currently_over_threshold to false
+    #        > else
+    #            >> the information doesnt need to be logged (no notification)
+    #  elif threshold_dircetion == "-1:
+    #   - if the sensor value is lower than threshold then :
+    #        > if the currently_over_threshold is True then :
+    #             >> log the information (no notification)
+    #        > else:
+    #             >> log the information
+    #             >> send notification (Android & email) -> Value above threshold
+    #             >> set currently_over_threshold to True
+    #   - else:
+    #         > if the currently_above_threshold is True then :
+    #             >> log the detail
+    #             >> send notification (android & email) -> value is normal again
+    #             >> set currently_over_threshold to false
+    #        > else
+    #            >> the information doesnt need to be logged (no notification)
+    # Else: return true (There is no need to check the threshold)
     # Return value : True if the operation succeed, False if the operation failed
-    def check_sensor_threshold(self, user_sensor_uuid, sensor_value):
+    def check_sensor_threshold(self, user_sensor_uuid, sensor_value, device_data):
         db = GudangMongoDB()
         try:
             user_sensor = db.get_user_sensor_by_uuid(user_sensor_uuid=user_sensor_uuid)
@@ -50,30 +72,64 @@ class GudangUtils:
             return False
         else:
             # Only Execute when the threshold is set
+            smodule = GudangSidikModule()
             if user_sensor['threshold_enabled'] :
                 if user_sensor['threshold_direction'] == "1" :
                     # Todo : Make a logger for the value
-                    # Todo : Create a reusable fucntion for logging and sensing notificatio
                     # Compare the value to the threshold
                     if sensor_value > user_sensor['sensor_threshold']:
                         # Check the current status
                         if user_sensor['currently_over_threshold']:
                             # Log the status
-                            print('logged')
                             return True
                         else:
                             # Log the status, send the notification, and modify currently_above_threshold
+                            # When the value is over threshold
                             try:
                                 db.update_currently_over_threshold(object_id=user_sensor['_id'], new_status=True)
                             except:
                                 # For unknown error
                                 return False
                             else:
-                                print('logged, email sent. current status changed')
-                                print('Sensor x exceeding value set')
-                                return True
+                                gsurat = GudangSuratModule()
+                                # Get user detail (to get the email address)
+                                user = smodule.get_email_address(user_uuid=user_sensor['user_uuid'])
+                                # Get the master sensor (For unit & symbol)
+                                master_sensor = db.get_master_sensor_by_uuid(master_sensor_uuid=user_sensor['master_sensor_uuid'])
+                                if user.status_code == 200:
+                                    # Prepare the request data
+                                    user_email = user.json()['data']['email']
+                                    device_name = device_data['device_name']
+                                    user_sensor_name = user_sensor['user_sensor_name']
+                                    threshold_value = user_sensor['sensor_threshold']
+                                    latest_value = sensor_value
+                                    time_reached = datetime.now().timestamp()
+                                    threshold_direction = user_sensor['threshold_direction']
+                                    unit_symbol = master_sensor['master_sensor_default_unit_symbol']
+                                    notification_type = "0"
+
+                                    # Send the notification email using different thread
+                                    notification_thread = threading.Thread(target=gsurat.send_device_notification_email_worker,
+                                                                           args=(user_email, device_name, user_sensor_name, threshold_value,
+                                                                                 latest_value, time_reached, threshold_direction,
+                                                                                 unit_symbol, notification_type))
+                                    # Start the thread
+                                    # Todo : Make a logger for the thread
+                                    notification_thread.start()
+
+                                    # Send android notification
+                                    android_notification_thread = threading.Thread(target=gsurat.send_device_android_notification_worker,
+                                                                                   args=(user_sensor['user_uuid'],device_data['device_uuid'],
+                                                                                         user_sensor_name, user_sensor['user_sensor_uuid'],
+                                                                                         '1'))
+                                    android_notification_thread.start()
+                                    return True
+
+                                else:
+                                    return False
                     else:
                         # Check the current status
+                        # When the value is return back to normal
                         if user_sensor['currently_over_threshold']:
                             # Log the status, send the notification, and modify currently_above_threshold
                             try:
@@ -82,24 +138,58 @@ class GudangUtils:
                                 # For unknown error
                                 return False
                             else:
-                                print('logged, email sent. current status changed')
-                                print('Sensor x Back to normal')
-                                return True
+                                gsurat = GudangSuratModule()
+                                # Get user detail (to get the email address)
+                                user = smodule.get_email_address(user_uuid=user_sensor['user_uuid'])
+                                # Get the master sensor (For unit & symbol)
+                                master_sensor = db.get_master_sensor_by_uuid(
+                                    master_sensor_uuid=user_sensor['master_sensor_uuid'])
+                                if user.status_code == 200:
+                                    # Prepare the request data
+                                    user_email = user.json()['data']['email']
+                                    device_name = device_data['device_name']
+                                    user_sensor_name = user_sensor['user_sensor_name']
+                                    threshold_value = user_sensor['sensor_threshold']
+                                    latest_value = sensor_value
+                                    time_reached = datetime.now().timestamp()
+                                    threshold_direction = user_sensor['threshold_direction']
+                                    unit_symbol = master_sensor['master_sensor_default_unit_symbol']
+                                    notification_type = "1"
+
+                                    # Send the notification email using different thread
+                                    notification_thread = threading.Thread(
+                                        target=gsurat.send_device_notification_email_worker,
+                                        args=(user_email, device_name, user_sensor_name, threshold_value,
+                                              latest_value, time_reached, threshold_direction,
+                                              unit_symbol, notification_type))
+                                    # Start the thread
+                                    # Todo : Make a logger for the thread
+                                    notification_thread.start()
+
+                                    # Send android notification
+                                    android_notification_thread = threading.Thread(
+                                        target=gsurat.send_device_android_notification_worker,
+                                        args=(user_sensor['user_uuid'], device_data['device_uuid'],
+                                              user_sensor_name, user_sensor['user_sensor_uuid'],
+                                              '0'))
+                                    android_notification_thread.start()
+                                    return True
+
+                                else:
+                                    return False
                         else:
                             # Status Wont be logged
-                            print('not logged')
                             return True
                 elif user_sensor['threshold_direction'] == "-1":
                     # Todo : Make a logger for the value
-                    # Todo : Create a reusable fucntion for logging and sensing notificatio
                     # Compare the value to the threshold
                     if sensor_value < user_sensor['sensor_threshold']:
                         # Check the current status
                         if user_sensor['currently_over_threshold']:
                             # Log the status
-                            print('logged')
                             return True
                         else:
+                            # When the value is over the threshold
                             # Log the status, send the notification, and modify currently_above_threshold
                             try:
                                 db.update_currently_over_threshold(object_id=user_sensor['_id'], new_status=True)
@@ -107,9 +197,48 @@ class GudangUtils:
                                 # For unknown error
                                 return False
                             else:
-                                print('logged, email sent. current status changed')
-                                print('Sensor x exceeding value set')
-                                return True
+                                gsurat = GudangSuratModule()
+                                # Get user detail (to get the email address)
+                                user = smodule.get_email_address(user_uuid=user_sensor['user_uuid'])
+                                # Get the master sensor (For unit & symbol)
+                                master_sensor = db.get_master_sensor_by_uuid(
+                                    master_sensor_uuid=user_sensor['master_sensor_uuid'])
+                                if user.status_code == 200:
+                                    # Prepare the request data
+                                    user_email = user.json()['data']['email']
+                                    device_name = device_data['device_name']
+                                    user_sensor_name = user_sensor['user_sensor_name']
+                                    threshold_value = user_sensor['sensor_threshold']
+                                    latest_value = sensor_value
+                                    time_reached = datetime.now().timestamp()
+                                    threshold_direction = user_sensor['threshold_direction']
+                                    unit_symbol = master_sensor['master_sensor_default_unit_symbol']
+                                    notification_type = "0"
+                                    # Required parameter for logger
+                                    user_uuid = user.json()['data']['user_uuid']
+                                    user_sensor_uuid = user_sensor['user_sensor_uuid']
+                                    device_uuid = device_data['device_uuid']
+
+                                    # Send the notification email using different thread
+                                    notification_thread = threading.Thread(
+                                        target=gsurat.send_device_notification_email_worker,
+                                        args=(user_uuid, user_sensor_uuid, device_uuid, user_email, device_name, user_sensor_name, threshold_value,
+                                              latest_value, time_reached, threshold_direction,
+                                              unit_symbol, notification_type))
+                                    # Start the thread
+                                    notification_thread.start()
+
+                                    # Send android notification
+                                    android_notification_thread = threading.Thread(
+                                        target=gsurat.send_device_android_notification_worker,
+                                        args=(user_sensor['user_uuid'], device_data['device_uuid'],
+                                              user_sensor_name, user_sensor['user_sensor_uuid'],
+                                              '1'))
+                                    android_notification_thread.start()
+                                    return True
+
+                                else:
+                                    return False
                     else:
                         # Check the current status
                         if user_sensor['currently_over_threshold']:
@@ -120,15 +249,56 @@ class GudangUtils:
                                 # For unknown error
                                 return False
                             else:
-                                print('logged, email sent. current status changed')
-                                print('Sensor x Back to normal')
-                                return True
+                                gsurat = GudangSuratModule()
+                                # Get user detail (to get the email address)
+                                user = smodule.get_email_address(user_uuid=user_sensor['user_uuid'])
+                                # Get the master sensor (For unit & symbol)
+                                master_sensor = db.get_master_sensor_by_uuid(
+                                    master_sensor_uuid=user_sensor['master_sensor_uuid'])
+                                if user.status_code == 200:
+                                    # Prepare the request data
+                                    user_email = user.json()['data']['email']
+                                    device_name = device_data['device_name']
+                                    user_sensor_name = user_sensor['user_sensor_name']
+                                    threshold_value = user_sensor['sensor_threshold']
+                                    latest_value = sensor_value
+                                    time_reached = datetime.now().timestamp()
+                                    threshold_direction = user_sensor['threshold_direction']
+                                    unit_symbol = master_sensor['master_sensor_default_unit_symbol']
+                                    notification_type = "1"
+                                    # Required parameter for logger
+                                    user_uuid = user.json()['data']['user_uuid']
+                                    user_sensor_uuid = user_sensor['user_sensor_uuid']
+                                    device_uuid = device_data['device_uuid']
+
+                                    # Send the notification email using different thread
+                                    notification_thread = threading.Thread(
+                                        target=gsurat.send_device_notification_email_worker,
+                                        args=(user_uuid, user_sensor_uuid, device_uuid, user_email, device_name,
+                                              user_sensor_name, threshold_value,
+                                              latest_value, time_reached, threshold_direction,
+                                              unit_symbol, notification_type))
+                                    # Start the thread
+                                    notification_thread.start()
+
+                                    # Send android notification
+                                    android_notification_thread = threading.Thread(
+                                        target=gsurat.send_device_android_notification_worker,
+                                        args=(user_sensor['user_uuid'], device_data['device_uuid'],
+                                              user_sensor_name, user_sensor['user_sensor_uuid'],
+                                              '0'))
+                                    android_notification_thread.start()
+                                    return True
+
+                                else:
+                                    return False
                         else:
                             # Status Wont be logged
-                            print('not logged')
                             return True
-
+                else:
+                    return False
             else:
+                # If threshold is disabled
                 return True
 
 class ResponseGenerator:
@@ -190,3 +360,5 @@ class RequestUtils:
                 data['token'] = auth_header[1]
                 data['error'] = None
                 return data
+
+

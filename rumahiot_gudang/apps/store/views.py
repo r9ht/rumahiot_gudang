@@ -142,9 +142,15 @@ def store_device_data(request):
                             # Check the value of each sensor
                             for sensor_data in j['sensor_datas']:
                                 # Todo : Check the output and put it in the log
+                                # Put device data in the too so it can be used when the threshold criteria met
                                 threshold_check_success = gutils.check_sensor_threshold(user_sensor_uuid=sensor_data['user_sensor_uuid'],
-                                                                                        sensor_value=sensor_data['user_sensor_value'])
+                                                                                        sensor_value=sensor_data['user_sensor_value'],
+                                                                                        device_data=device_data)
 
+                                if not threshold_check_success:
+                                    response_data = rg.error_response_generator(500, "Internal server error")
+                                    return HttpResponse(json.dumps(response_data), content_type="application/json",
+                                                        status=500)
                             if response != None:
                                 response_data = rg.success_response_generator(200, "Device data successfully submitted")
                                 return HttpResponse(json.dumps(response_data), content_type="application/json",

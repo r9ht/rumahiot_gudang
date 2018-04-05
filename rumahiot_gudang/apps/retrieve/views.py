@@ -131,10 +131,12 @@ def retrieve_device_list(request):
                                 # get lastest data value
                                 # take the first element, as the result length is one, by iterating over mongo cursor (as it cannot be accessed directly with index)
                                 device_latest_datas = db.get_n_latest_device_data(result['device_uuid'], 1)
+
                                 # TODO : Add latest data too for the device without any data
                                 for device_latest_data in device_latest_datas:
                                     for sensor_data in device_latest_data['sensor_datas']:
                                         if sensor_data['user_sensor_uuid'] == user_sensor['user_sensor_uuid']:
+                                            sensor_detail['latest_value_added'] = device_latest_data['time_added']
                                             sensor_detail['latest_value'] = sensor_data['user_sensor_value']
 
                                 # Check the threshold for quick status for sensor with enabled threshold
