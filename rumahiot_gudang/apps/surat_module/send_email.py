@@ -1,6 +1,12 @@
 # Consist of class and methods for accessing surat endpoint
 import requests
-from rumahiot_gudang.settings import RUMAHIOT_SURAT_API_KEY, RUMAHIOT_SURAT_SEND_DEVICE_NOTIFICATION_ENDPOINT, SEND_ANDROID_NOTIFICATION_ENDPOINT
+from rumahiot_gudang.settings import RUMAHIOT_SURAT_API_KEY, RUMAHIOT_SURAT_SEND_DEVICE_NOTIFICATION_ENDPOINT, FCM_API_KEY
+from rumahiot_gudang.apps.surat_module.logger import GudangSuratLoggerModule
+from pyfcm import FCMNotification
+import json
+from time import strftime
+from datetime import datetime
+
 
 class GudangSuratModule:
 
@@ -17,6 +23,9 @@ class GudangSuratModule:
                                        threshold_value, latest_value, time_reached,
                                        threshold_direction, unit_symbol,
                                        notification_type):
+        # Initiate the log module
+        logger = GudangSuratLoggerModule()
+
         header = {
             'Authorization': 'Bearer {}'.format(RUMAHIOT_SURAT_API_KEY)
         }
@@ -33,7 +42,20 @@ class GudangSuratModule:
         }
 
         response = requests.post(url=RUMAHIOT_SURAT_SEND_DEVICE_NOTIFICATION_ENDPOINT, headers=header, data=payload)
-        return response
+
+        # Prepare the log data
+        viewed = '0'
+        if response.status_code == 200 :
+            # call succeed
+            sent = '1'
+        else:
+            # call failed
+            sent = '0'
+
+        logger.log_device_notification(user_uuid=user_uuid, user_sensor_uuid=user_sensor_uuid, device_uuid=device_uuid, device_name=device_name,
+                                       user_sensor_name=user_sensor_name, threshold_value=threshold_value, latest_value=latest_value,
+                                       time_reached=time_reached, threshold_direction=threshold_direction, unit_symbol=unit_symbol,
+                                       notification_type=notification_type, sent=sent, viewed=viewed)
 
     # Send android device notification
     # This endpoint wasn't managed by Rumah IoT
@@ -45,19 +67,33 @@ class GudangSuratModule:
     # - user_sensor_name(string)
     # - user_sensor_uuid(string)
     # - status(string)
-    def send_device_android_notification_worker(self, user_uuid, device_uuid, user_sensor_name, user_sensor_uuid, status):
-        header = {
-            "Content-Type": "application/x-www-form-urlencoded"
-        }
+    def send_device_android_notification_worker(self, user_uuid, device_uuid, user_sensor_name, device_name,  user_sensor_uuid, status, time_reached):
+        # header = {
+        #     "Content-Type": "application/x-www-form-urlencoded"
+        # }
+        #
+        # payload = {
+        #     'user_uuid': user_uuid,
+        #     'device_uuid': device_uuid,
+        #     'user_sensor_name': user_sensor_name,
+        #     'user_sensor_uuid'   : user_sensor_uuid,
+        #     'status': status
+        # }
+        # response = requests.post(url=SEND_ANDROID_NOTIFICATION_ENDPOINT,data=payload, headers=header)
+
+        push_service = FCMNotification(api_key=FCM_API_KEY)
 
         payload = {
-            'user_uuid': user_uuid,
-            'device_uuid': device_uuid,
-            'user_sensor_name': user_sensor_name,
-            'user_sensor_uuid': user_sensor_uuid,
-            'status': status
+            "data": {
+                "device_uuid": device_uuid,
+                "device_name": device_name,
+                "user_sensor_uuid": user_sensor_uuid,
+                "user_sensor_name": user_sensor_name,
+                "status": status,
+                "timestamp": datetime.fromtimestamp(float(time_reached)).strftime("%Y-%m-%d %H:%M:%S")
+            }
         }
-        response = requests.post(url=SEND_ANDROID_NOTIFICATION_ENDPOINT,data=payload, headers=header)
-        return response
+
+        result = push_service.notify_topic_subscribers(topic_name=user_uuid, data_message=payload)
 
 

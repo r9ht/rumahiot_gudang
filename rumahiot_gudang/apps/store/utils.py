@@ -2,7 +2,7 @@ from rumahiot_gudang.apps.store.mongodb import GudangMongoDB
 from rumahiot_gudang.apps.sidik_module.authentication import GudangSidikModule
 from datetime import datetime
 from rumahiot_gudang.apps.surat_module.send_email import GudangSuratModule
-import threading
+import multiprocessing
 
 class GudangUtils:
 
@@ -26,6 +26,30 @@ class GudangUtils:
             return False
         else:
             return True
+
+    # Check if input data is a correct value between 1-12 (valid month)
+    def month_check(self, month):
+        try:
+            int(month)
+        except ValueError:
+            return False
+        else:
+            if int(month) > 0 and int(month) < 13:
+                return True
+            else:
+                return False
+
+    # check if input year is a correct value above 0
+    def year_check(self, year):
+        try:
+            int(year)
+        except ValueError:
+            return False
+        else:
+            if int(year) > 0 :
+                return True
+            else:
+                return False
 
     # Check current sensor value against the threshold and  current_above_threshold status
     # Logic :
@@ -107,22 +131,27 @@ class GudangUtils:
                                     threshold_direction = user_sensor['threshold_direction']
                                     unit_symbol = master_sensor['master_sensor_default_unit_symbol']
                                     notification_type = "0"
+                                    # Required parameter for logger
+                                    user_uuid = user.json()['data']['user_uuid']
+                                    user_sensor_uuid = user_sensor['user_sensor_uuid']
+                                    device_uuid = device_data['device_uuid']
 
-                                    # Send the notification email using different thread
-                                    notification_thread = threading.Thread(target=gsurat.send_device_notification_email_worker,
-                                                                           args=(user_email, device_name, user_sensor_name, threshold_value,
-                                                                                 latest_value, time_reached, threshold_direction,
-                                                                                 unit_symbol, notification_type))
-                                    # Start the thread
-                                    # Todo : Make a logger for the thread
-                                    notification_thread.start()
+                                    # Send the notification email using different process
+                                    notification_process = multiprocessing.Process(
+                                        target=gsurat.send_device_notification_email_worker,
+                                        args=(user_uuid, user_sensor_uuid, device_uuid, user_email, device_name,
+                                              user_sensor_name, threshold_value,
+                                              latest_value, time_reached, threshold_direction,
+                                              unit_symbol, notification_type))
+                                    # Start the process
+                                    notification_process.start()
 
                                     # Send android notification
-                                    android_notification_thread = threading.Thread(target=gsurat.send_device_android_notification_worker,
+                                    android_notification_process = multiprocessing.Process(target=gsurat.send_device_android_notification_worker,
                                                                                    args=(user_sensor['user_uuid'],device_data['device_uuid'],
-                                                                                         user_sensor_name, user_sensor['user_sensor_uuid'],
-                                                                                         '1'))
-                                    android_notification_thread.start()
+                                                                                         user_sensor_name, device_name, user_sensor['user_sensor_uuid'],
+                                                                                         '1', time_reached))
+                                    android_notification_process.start()
                                     return True
 
                                 else:
@@ -156,24 +185,30 @@ class GudangUtils:
                                     unit_symbol = master_sensor['master_sensor_default_unit_symbol']
                                     notification_type = "1"
 
-                                    # Send the notification email using different thread
-                                    notification_thread = threading.Thread(
+                                    # Required parameter for logger
+                                    user_uuid = user.json()['data']['user_uuid']
+                                    user_sensor_uuid = user_sensor['user_sensor_uuid']
+                                    device_uuid = device_data['device_uuid']
+
+                                    # Send the notification email using different process
+                                    notification_process = multiprocessing.Process(
                                         target=gsurat.send_device_notification_email_worker,
-                                        args=(user_email, device_name, user_sensor_name, threshold_value,
+                                        args=(user_uuid, user_sensor_uuid, device_uuid, user_email, device_name,
+                                              user_sensor_name, threshold_value,
                                               latest_value, time_reached, threshold_direction,
                                               unit_symbol, notification_type))
-                                    # Start the thread
-                                    # Todo : Make a logger for the thread
-                                    notification_thread.start()
+                                    # Start the process
+                                    notification_process.start()
 
                                     # Send android notification
-                                    android_notification_thread = threading.Thread(
+                                    android_notification_process = multiprocessing.Process(
                                         target=gsurat.send_device_android_notification_worker,
                                         args=(user_sensor['user_uuid'], device_data['device_uuid'],
-                                              user_sensor_name, user_sensor['user_sensor_uuid'],
-                                              '0'))
-                                    android_notification_thread.start()
+                                              user_sensor_name, device_name, user_sensor['user_sensor_uuid'],
+                                              '0', time_reached))
+                                    android_notification_process.start()
                                     return True
+
 
                                 else:
                                     return False
@@ -214,27 +249,28 @@ class GudangUtils:
                                     threshold_direction = user_sensor['threshold_direction']
                                     unit_symbol = master_sensor['master_sensor_default_unit_symbol']
                                     notification_type = "0"
+
                                     # Required parameter for logger
                                     user_uuid = user.json()['data']['user_uuid']
                                     user_sensor_uuid = user_sensor['user_sensor_uuid']
                                     device_uuid = device_data['device_uuid']
 
-                                    # Send the notification email using different thread
-                                    notification_thread = threading.Thread(
+                                    # Send the notification email using different process
+                                    notification_process = multiprocessing.Process(
                                         target=gsurat.send_device_notification_email_worker,
                                         args=(user_uuid, user_sensor_uuid, device_uuid, user_email, device_name, user_sensor_name, threshold_value,
                                               latest_value, time_reached, threshold_direction,
                                               unit_symbol, notification_type))
-                                    # Start the thread
-                                    notification_thread.start()
+                                    # Start the process
+                                    notification_process.start()
 
                                     # Send android notification
-                                    android_notification_thread = threading.Thread(
+                                    android_notification_process = multiprocessing.Process(
                                         target=gsurat.send_device_android_notification_worker,
                                         args=(user_sensor['user_uuid'], device_data['device_uuid'],
-                                              user_sensor_name, user_sensor['user_sensor_uuid'],
-                                              '1'))
-                                    android_notification_thread.start()
+                                              user_sensor_name, device_name, user_sensor['user_sensor_uuid'],
+                                              '1', time_reached))
+                                    android_notification_process.start()
                                     return True
 
                                 else:
@@ -266,29 +302,31 @@ class GudangUtils:
                                     threshold_direction = user_sensor['threshold_direction']
                                     unit_symbol = master_sensor['master_sensor_default_unit_symbol']
                                     notification_type = "1"
+
                                     # Required parameter for logger
                                     user_uuid = user.json()['data']['user_uuid']
                                     user_sensor_uuid = user_sensor['user_sensor_uuid']
                                     device_uuid = device_data['device_uuid']
 
-                                    # Send the notification email using different thread
-                                    notification_thread = threading.Thread(
+                                    # Send the notification email using different process
+                                    notification_process = multiprocessing.Process(
                                         target=gsurat.send_device_notification_email_worker,
                                         args=(user_uuid, user_sensor_uuid, device_uuid, user_email, device_name,
                                               user_sensor_name, threshold_value,
                                               latest_value, time_reached, threshold_direction,
                                               unit_symbol, notification_type))
-                                    # Start the thread
-                                    notification_thread.start()
+                                    # Start the process
+                                    notification_process.start()
 
                                     # Send android notification
-                                    android_notification_thread = threading.Thread(
+                                    android_notification_process = multiprocessing.Process(
                                         target=gsurat.send_device_android_notification_worker,
                                         args=(user_sensor['user_uuid'], device_data['device_uuid'],
-                                              user_sensor_name, user_sensor['user_sensor_uuid'],
-                                              '0'))
-                                    android_notification_thread.start()
+                                              user_sensor_name, device_name, user_sensor['user_sensor_uuid'],
+                                              '0', time_reached))
+                                    android_notification_process.start()
                                     return True
+
 
                                 else:
                                     return False

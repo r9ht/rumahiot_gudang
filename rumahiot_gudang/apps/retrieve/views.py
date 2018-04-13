@@ -1,11 +1,15 @@
 import json
-from datetime import datetime
+import datetime
+import timeit
+
 
 from django.shortcuts import HttpResponse
 
-from rumahiot_gudang.apps.retrieve.authorization import GudangSidikModule
+from rumahiot_gudang.apps.sidik_module.authorization import GudangSidikModule
 from rumahiot_gudang.apps.store.mongodb import GudangMongoDB
 from rumahiot_gudang.apps.store.utils import RequestUtils, ResponseGenerator, GudangUtils
+
+from calendar import monthrange
 
 
 # Create your views here.
@@ -13,6 +17,9 @@ from rumahiot_gudang.apps.store.utils import RequestUtils, ResponseGenerator, Gu
 # Retrieve corresponding user device list
 # Using GET because we need url parameter
 def retrieve_device_list(request):
+    # Init time
+    start_time = timeit.default_timer()
+
     # Gudang class
     rg = ResponseGenerator()
     requtils = RequestUtils()
@@ -163,6 +170,9 @@ def retrieve_device_list(request):
                             # Append to the main data
                             data['results'].append(preparsed_result)
 
+                        # Finish time
+                        data['time_to_generate'] = timeit.default_timer() - start_time
+
                         response_data = rg.data_response_generator(data)
                         return HttpResponse(json.dumps(response_data), content_type="application/json", status=200)
                     else:
@@ -179,6 +189,8 @@ def retrieve_device_list(request):
 # Retrieve user device data (Internally using JWT and device id)
 # using GET because we need url parameter for easier access
 def retrieve_device_data(request):
+    # Start time
+    start_time = timeit.default_timer()
     # Gudang class
     rg = ResponseGenerator()
     requtils = RequestUtils()
@@ -196,7 +208,7 @@ def retrieve_device_data(request):
         # Start date, defaulting to 0
         from_date = request.GET.get('fd', '0')
         # End date , defaulting to right now
-        to_date = request.GET.get('td', float(datetime.now().timestamp()))
+        to_date = request.GET.get('td', float(datetime.datetime.now().timestamp()))
         # Per page limit
         limit = request.GET.get('l', '10')
         # Order method , the data sorted in descending order (newest data first) by default
@@ -238,9 +250,9 @@ def retrieve_device_data(request):
                         if page != '' and limit != '' and gutils.integer_check(page) and gutils.integer_check(
                                 limit) and gutils.float_check(from_date) and gutils.float_check(to_date):
                             # make sure the value in the correct order
-                            if (float(to_date) > float(from_date) and (float(to_date) < datetime.now().timestamp())):
+                            if (float(to_date) > float(from_date) and (float(to_date) < datetime.datetime.now().timestamp())):
                                 # Get the device data
-                                device_data = db.get_user_device_data_uuid(device_uuid=device_uuid)
+                                device_data = db.get_device_by_uuid(device_uuid=device_uuid)
                                 # If device_uuid isn't valid
                                 if device_data != None:
                                     # Make sure the device is owned by the user
@@ -302,7 +314,8 @@ def retrieve_device_data(request):
                                             'result_per_sensor_count': results.count(True),
                                             'listed_sensor_count': len(sensor_uuids)
                                         }
-
+                                        # Finish time
+                                        data['time_to_generate'] = timeit.default_timer() - start_time
                                         # return the result
                                         response_data = rg.data_response_generator(data)
                                         return HttpResponse(json.dumps(response_data), content_type="application/json",
@@ -337,6 +350,8 @@ def retrieve_device_data(request):
 
 # return supported board list for adding device
 def retrieve_supported_board_list(request):
+    # Start time
+    start_time = timeit.default_timer()
     # Gudang class
     rg = ResponseGenerator()
     requtils = RequestUtils()
@@ -359,9 +374,390 @@ def retrieve_supported_board_list(request):
             board['chip'] = supported_board['chip']
             data['supported_boards'].append(board)
 
+        # Finish time
+        data['time_to_generate'] = timeit.default_timer() - start_time
         response_data = rg.data_response_generator(data)
         return HttpResponse(json.dumps(response_data), content_type="application/json",
                             status=200)
+    else:
+        response_data = rg.error_response_generator(400, "Bad request method")
+        return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
+
+
+def retrieve_device_data_statistic(request):
+    # Start time
+    start_time = timeit.default_timer()
+    # Gudang class
+    rg = ResponseGenerator()
+    requtils = RequestUtils()
+    auth = GudangSidikModule()
+    db = GudangMongoDB()
+    gutils = GudangUtils()
+
+    # Device UUID
+    device_uuid = request.GET.get('device_uuid', '')
+    # start time
+    from_time = request.GET.get('ft', '')
+    # End time , defaulting to right now
+    to_time = request.GET.get('tt', '')
+    # Time range divider
+    divider = request.GET.get('divider', '')
+    if request.method == "GET":
+        # check the parameter
+        if (len(device_uuid) != 0 ) and (len(from_time) != 0 ) and (len(to_time) != 0 ) and (len(divider) != 0):
+            # Check from_time, to_time, and divider data type
+            if gutils.float_check(from_time) and gutils.float_check(to_time) and gutils.float_check(divider):
+                if float(to_time) > float(from_time):
+                    # Check the token
+                    try:
+                        token = requtils.get_access_token(request)
+                    except KeyError:
+                        response_data = rg.error_response_generator(400, "Please define the authorization header")
+                        return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
+                    else:
+                        if token['token'] != None:
+                            user = auth.get_user_data(token['token'])
+                            # Check token validity
+                            if user['user_uuid'] != None:
+                                # check if the device is correct and owned by the user
+                                device = db.get_device_by_uuid(device_uuid=device_uuid)
+                                if device != None:
+                                    # Check device ownership
+                                    if device['user_uuid'] == user['user_uuid']:
+                                        # Type cast the value
+                                        to_time = float(to_time)
+                                        from_time = float(from_time)
+                                        divider = float(divider)
+
+                                        from_time_datetime = datetime.datetime.fromtimestamp(from_time)
+                                        to_time_datetime = datetime.datetime.fromtimestamp(to_time)
+                                        # Delta between from_time and to_time
+                                        time_delta = to_time_datetime -from_time_datetime
+                                        # Prepare statistic data
+                                        data = {
+                                            'device_uuid': device['device_uuid'],
+                                            'total_user_sensor': len(device['user_sensor_uuids']),
+                                            'user_sensor_uuids': device['user_sensor_uuids'],
+                                            'device_data_statistics' : [],
+                                            'time_generated': float(datetime.datetime.now().timestamp())
+                                        }
+                                        # Iterate between the user_sensor_uuid in the device
+                                        for user_sensor_uuid in device['user_sensor_uuids'] :
+                                            # Reinitialize the data
+                                            time_range = time_delta / divider
+                                            current_pointer = from_time_datetime
+                                            # Iteration for each range
+                                            # Iteration count depends on divider value
+
+                                            device_data_statistic = {
+                                                'user_sensor_uuid' : user_sensor_uuid,
+                                                'statistic_values' : []
+                                            }
+                                            # Iterate between the time range
+                                            # Number of the iteration depends on divider value
+                                            while current_pointer < to_time_datetime:
+                                                # Pointer for mapping next to_time
+                                                next_pointer = current_pointer + time_range
+                                                results = db.user_sensor_statistic_data(from_time=current_pointer.timestamp(),to_time=next_pointer.timestamp(), device_uuid=device_uuid, user_sensor_uuid=user_sensor_uuid)
+                                                # Check if the result is empty (no value between the time range)
+                                                if len(results) == 0 :
+                                                    avg_sensor_value = None
+                                                    max_sensor_value = None
+                                                    min_sensor_value = None
+                                                    data_count = 0
+                                                else:
+                                                    avg_sensor_value = float(results[0]['user_sensor_value_average'])
+                                                    max_sensor_value = float(results[0]['user_sensor_value_max'])
+                                                    min_sensor_value = float(results[0]['user_sensor_value_min'])
+                                                    data_count = int(results[0]['data_count'])
+
+                                                statistic_value = {
+                                                    'from_time' : float(current_pointer.timestamp()),
+                                                    'to_time': float(next_pointer.timestamp()),
+                                                    'avg_sensor_value': avg_sensor_value,
+                                                    'max_sensor_value': max_sensor_value,
+                                                    'min_sensor_value': min_sensor_value,
+                                                    'data_count': int(data_count)
+                                                }
+
+                                                # Append the stastic for each sensor
+                                                device_data_statistic['statistic_values'].append(statistic_value)
+                                                current_pointer += time_range
+
+                                            # Append the final stucture
+                                            data['device_data_statistics'].append(device_data_statistic)
+
+                                        # Finish time
+                                        data['time_to_generate'] = timeit.default_timer() - start_time
+                                        # Generate response object
+                                        response_data = rg.data_response_generator(data)
+                                        return HttpResponse(json.dumps(response_data), content_type="application/json",status=200)
+                                    else:
+                                        response_data = rg.error_response_generator(400, 'Invalid device UUID')
+                                        return HttpResponse(json.dumps(response_data), content_type="application/json",
+                                                            status=400)
+                                else:
+                                    response_data = rg.error_response_generator(400, 'Invalid device UUID')
+                                    return HttpResponse(json.dumps(response_data), content_type="application/json",
+                                                        status=400)
+                            else:
+                                response_data = rg.error_response_generator(400, user['error'])
+                                return HttpResponse(json.dumps(response_data), content_type="application/json",
+                                                    status=400)
+
+                        else:
+                            response_data = rg.error_response_generator(400, token['error'])
+                            return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
+                else:
+                    response_data = rg.error_response_generator(400, 'To Time must be larger than from time')
+                    return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
+
+            else:
+                response_data = rg.error_response_generator(400, "Incorrect parameter data type")
+                return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
+        else:
+            response_data = rg.error_response_generator(400, "Required parameter missing")
+            return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
+    else:
+        response_data = rg.error_response_generator(400, "Bad request method")
+        return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
+
+def retrieve_device_data_statistic_monthly(request):
+    # Start time
+    start_time = timeit.default_timer()
+    # Gudang class
+    rg = ResponseGenerator()
+    requtils = RequestUtils()
+    auth = GudangSidikModule()
+    db = GudangMongoDB()
+    gutils = GudangUtils()
+
+    # Device UUID
+    device_uuid = request.GET.get('device_uuid', '')
+    # month (1 to 12)
+    month = request.GET.get('month', '')
+    year = request.GET.get('year', '')
+
+    if request.method == 'GET':
+        if (len(device_uuid) != 0) and (len(month) != 0) and (len(year) != 0) :
+            # Check month and year validity
+            if gutils.month_check(month=month) and gutils.year_check(year=year):
+                # Check the token
+                try:
+                    token = requtils.get_access_token(request)
+                except KeyError:
+                    response_data = rg.error_response_generator(400, "Please define the authorization header")
+                    return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
+                else:
+                    if token['token'] != None:
+                        user = auth.get_user_data(token['token'])
+                        # Check token validity
+                        if user['user_uuid'] != None:
+                            # check if the device is correct and owned by the user
+                            device = db.get_device_by_uuid(device_uuid=device_uuid)
+                            if device != None:
+                                # Check device ownership
+                                if device['user_uuid'] == user['user_uuid']:
+                                    # Get the number of day based on month and year
+                                    # Month total day available on the 2nd element of the result list
+                                    number_of_day = monthrange(int(year), int(month))[1]
+                                    # Prepare statistic data
+                                    data = {
+                                        'device_uuid': device['device_uuid'],
+                                        'total_user_sensor': len(device['user_sensor_uuids']),
+                                        'user_sensor_uuids': device['user_sensor_uuids'],
+                                        'device_data_statistics': [],
+                                        'month': str(month),
+                                        'year': str(year),
+                                        'total_days': number_of_day,
+                                        'time_generated': float(datetime.datetime.now().timestamp())
+                                    }
+
+                                    for user_sensor_uuid in device['user_sensor_uuids']:
+                                        device_data_statistic = {
+                                            'user_sensor_uuid': user_sensor_uuid,
+                                            'statistic_values': []
+                                        }
+                                        # Iterate through the whole month
+                                        for i in range(1, number_of_day + 1):
+                                            current_pointer = datetime.datetime(year=int(year), month=int(month), day=i)
+                                            # time delta defined as 24 hour a day
+                                            results = db.user_sensor_statistic_data(
+                                                from_time=current_pointer.timestamp(), to_time=(current_pointer+datetime.timedelta(hours=24)).timestamp(),
+                                                device_uuid=device_uuid, user_sensor_uuid=user_sensor_uuid)
+
+                                            if len(results) == 0:
+                                                avg_sensor_value = None
+                                                max_sensor_value = None
+                                                min_sensor_value = None
+                                                data_count = 0
+                                            else:
+                                                avg_sensor_value = float(results[0]['user_sensor_value_average'])
+                                                max_sensor_value = float(results[0]['user_sensor_value_max'])
+                                                min_sensor_value = float(results[0]['user_sensor_value_min'])
+                                                data_count = int(results[0]['data_count'])
+
+                                            statistic_value = {
+                                                'day': str(i),
+                                                'from_time' : float(current_pointer.timestamp()),
+                                                'to_time': float((current_pointer+datetime.timedelta(hours=24)).timestamp()),
+                                                'avg_sensor_value': avg_sensor_value,
+                                                'max_sensor_value': max_sensor_value,
+                                                'min_sensor_value': min_sensor_value,
+                                                'data_count': int(data_count)
+                                            }
+
+                                            # Append the data
+                                            device_data_statistic['statistic_values'].append(statistic_value)
+
+                                        # Append all result into main data
+                                        data['device_data_statistics'].append(device_data_statistic)
+
+                                    # Finsih time
+                                    data['time_to_generate'] = timeit.default_timer() - start_time
+                                    # Generater response object
+                                    response_data = rg.data_response_generator(data)
+                                    return HttpResponse(json.dumps(response_data), content_type="application/json",status=200)
+                                else:
+                                    response_data = rg.error_response_generator(400, 'Invalid device UUID')
+                                    return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
+                            else:
+                                response_data = rg.error_response_generator(400, 'Invalid device UUID')
+                                return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
+                        else:
+                                response_data = rg.error_response_generator(400, user['error'])
+                                return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
+                    else:
+                        response_data = rg.error_response_generator(400, token['error'])
+                        return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
+
+            else:
+                response_data = rg.error_response_generator(400, "Incorrect parameter data value")
+                return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
+        else:
+            response_data = rg.error_response_generator(400, "Required parameter missing")
+            return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
+    else:
+        response_data = rg.error_response_generator(400, "Bad request method")
+        return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
+
+
+def retrieve_device_device_data_statistic_yearly(request):
+    # Start time
+    start_time = timeit.default_timer()
+    # Gudang class
+    rg = ResponseGenerator()
+    requtils = RequestUtils()
+    auth = GudangSidikModule()
+    db = GudangMongoDB()
+    gutils = GudangUtils()
+
+    # Device UUID
+    device_uuid = request.GET.get('device_uuid', '')
+    year = request.GET.get('year', '')
+
+    if request.method == 'GET':
+        if (len(device_uuid) != 0) and (len(year) != 0):
+            # Check month and year validity
+            if gutils.year_check(year=year):
+                # Check the token
+                try:
+                    token = requtils.get_access_token(request)
+                except KeyError:
+                    response_data = rg.error_response_generator(400, "Please define the authorization header")
+                    return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
+                else:
+                    if token['token'] != None:
+                        user = auth.get_user_data(token['token'])
+                        # Check token validity
+                        if user['user_uuid'] != None:
+                            # check if the device is correct and owned by the user
+                            device = db.get_device_by_uuid(device_uuid=device_uuid)
+                            if device != None:
+                                # Check device ownership
+                                if device['user_uuid'] == user['user_uuid']:
+
+                                    # Prepare statistic data
+                                    data = {
+                                        'device_uuid': device['device_uuid'],
+                                        'total_user_sensor': len(device['user_sensor_uuids']),
+                                        'user_sensor_uuids': device['user_sensor_uuids'],
+                                        'device_data_statistics': [],
+                                        'year': str(year),
+                                        'time_generated': float(datetime.datetime.now().timestamp())
+                                    }
+
+                                    for user_sensor_uuid in device['user_sensor_uuids']:
+                                        device_data_statistic = {
+                                            'user_sensor_uuid': user_sensor_uuid,
+                                            'statistic_values': []
+                                        }
+                                        # Iterate through the year
+                                        for i in range(1, 13):
+                                            # Number of days for each month
+                                            # Number of days available in the second element
+                                            number_of_day = monthrange(year=int(year), month=i)[1]
+                                            # get the average data
+                                            # add 1 day to to_time so the  last day will be exactly 24 hour
+                                            results = db.user_sensor_statistic_data(
+                                                from_time=datetime.datetime(year=int(year), month=i, day=1).timestamp(),
+                                                to_time=(datetime.datetime(year=int(year), month=i, day=number_of_day) + datetime.timedelta(hours=24)).timestamp(),
+                                                device_uuid=device_uuid, user_sensor_uuid=user_sensor_uuid)
+
+                                            if len(results) == 0:
+                                                avg_sensor_value = None
+                                                max_sensor_value = None
+                                                min_sensor_value = None
+                                                data_count = 0
+                                            else:
+                                                avg_sensor_value = float(results[0]['user_sensor_value_average'])
+                                                max_sensor_value = float(results[0]['user_sensor_value_max'])
+                                                min_sensor_value = float(results[0]['user_sensor_value_min'])
+                                                data_count = int(results[0]['data_count'])
+
+                                            statistic_value = {
+                                                'month': str(i),
+                                                'from_time': float(datetime.datetime(year=int(year), month=i, day=1).timestamp()),
+                                                'to_time': (datetime.datetime(year=int(year), month=i, day=number_of_day) + datetime.timedelta(hours=24)).timestamp(),
+                                                'avg_sensor_value': avg_sensor_value,
+                                                'max_sensor_value': max_sensor_value,
+                                                'min_sensor_value': min_sensor_value,
+                                                'data_count': int(data_count),
+                                                'total_day': int(number_of_day)
+                                            }
+
+                                            # Append the data
+                                            device_data_statistic['statistic_values'].append(statistic_value)
+
+                                        # Append all result into main data
+                                        data['device_data_statistics'].append(device_data_statistic)
+                                        # Finsih time
+                                        data['time_to_generate'] = timeit.default_timer() - start_time
+                                    # Generater response object
+                                    response_data = rg.data_response_generator(data)
+                                    return HttpResponse(json.dumps(response_data), content_type="application/json",status=200)
+
+                                else:
+                                    response_data = rg.error_response_generator(400, 'Invalid device UUID')
+                                    return HttpResponse(json.dumps(response_data), content_type="application/json",
+                                                        status=400)
+                            else:
+                                response_data = rg.error_response_generator(400, 'Invalid device UUID')
+                                return HttpResponse(json.dumps(response_data), content_type="application/json",
+                                                    status=400)
+                        else:
+                            response_data = rg.error_response_generator(400, user['error'])
+                            return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
+                    else:
+                        response_data = rg.error_response_generator(400, token['error'])
+                        return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
+
+            else:
+                response_data = rg.error_response_generator(400, "Incorrect parameter data value")
+                return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
+        else:
+            response_data = rg.error_response_generator(400, "Required parameter missing")
+            return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
     else:
         response_data = rg.error_response_generator(400, "Bad request method")
         return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)

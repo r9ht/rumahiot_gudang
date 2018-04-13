@@ -10,6 +10,8 @@ from rumahiot_gudang.settings import RUMAHIOT_GUDANG_MONGO_HOST, \
     RUMAHIOT_GUDANG_MASTER_SENSORS_COLLECTION, \
     RUMAHIOT_GUDANG_USER_SENSORS_COLLECTION, \
     RUMAHIOT_GUDANG_SUPPORTED_BOARD_COLLECTION
+from bson.json_util import dumps
+import json
 
 
 class GudangMongoDB:
@@ -53,15 +55,6 @@ class GudangMongoDB:
             result = None
         return result
 
-    # Get user device data using device_uuid
-    # Input parameter : device_uuid(string)
-    # return result(dict)
-    def get_user_device_data_uuid(self, device_uuid):
-        db = self.client[RUMAHIOT_GUDANG_DATABASE]
-        col = db[RUMAHIOT_GUDANG_USERS_DEVICE_COLLECTION]
-        result = col.find_one({'device_uuid': device_uuid})
-        return result
-
     # Get user device list using user_uuid
     # Input parameter : user_uuid(string), skip(int), limit(int), text(string), direction(int)
     # return : result(dict)
@@ -82,16 +75,44 @@ class GudangMongoDB:
     # All date using unix timestamp format
     # Input parameter : device_uuid(string), skip(int), limit(int), direction(int),from_date(float), to_date(float)
     # For direction 1 is ascending, and -1 is descending
+    # Todo: change date to time
     def get_device_data(self, device_uuid, skip, limit, direction, from_date, to_date):
         db = self.client[RUMAHIOT_GUDANG_DATABASE]
         col = db[RUMAHIOT_GUDANG_DEVICE_DATA_COLLECTION]
         # lt operator stand for less than
         # gt operator stand for greater than
         # Filter using specified time range, limit, skip, and direction
-        results = col.find({'$and': [{'device_uuid': device_uuid}, {'time_added': {'$lt': to_date}},
-                                     {'time_added': {'$gt': from_date}}]}).sort([("_id", direction)]).skip(skip).limit(
-            limit)
+        results = col.find({'$and': [{'device_uuid': device_uuid}, {'time_added': {'$lte': to_date}},
+                                     {'time_added': {'$gte': from_date}}]}).sort([("_id", direction)]).skip(skip).limit(limit)
         return results
+
+    # Get device sensor average, min, and maximum sensor value from certain range
+    # Input parameter : from_time(float, unix timestamp), to_time(float, unix_timestamp), device_uuid(string), user_sensor_uuid (string)
+    # from time -> greater than , to_time -> less than equal
+    def user_sensor_statistic_data(self, from_time, to_time, device_uuid, user_sensor_uuid):
+        db = self.client[RUMAHIOT_GUDANG_DATABASE]
+        col = db[RUMAHIOT_GUDANG_DEVICE_DATA_COLLECTION]
+        results = col.aggregate(
+            [    # Unwind the data so the calculation can be done
+                {
+                    '$unwind': '$sensor_datas'
+                },
+                {
+                    '$match': {'$and': [{'time_added': {'$gt': from_time, '$lte': to_time}}, {'device_uuid': device_uuid}, {'sensor_datas.user_sensor_uuid': user_sensor_uuid}]}
+                },
+                {
+                    '$group': {
+                        '_id': {'user_sensor_uuid': '$sensor_datas.user_sensor_uuid', 'device_uuid': '$device_uuid'},
+                        'user_sensor_value_average': { '$avg': '$sensor_datas.user_sensor_value'},
+                        'user_sensor_value_max': { '$max': '$sensor_datas.user_sensor_value'},
+                        'user_sensor_value_min': { '$min': '$sensor_datas.user_sensor_value'},
+                        'data_count': { '$sum': 1}
+                    }
+                }
+            ]
+        )
+        # bson dumps will take empty list as a string
+        return json.loads(dumps(results))
 
     # Get sensor detail using sensor_uuid
     # input parameter : sensor_uuid(string)

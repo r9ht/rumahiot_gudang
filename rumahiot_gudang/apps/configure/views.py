@@ -4,7 +4,7 @@ from django.shortcuts import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 
 from rumahiot_gudang.apps.configure.forms import UpdateUserSensorDetailForm
-from rumahiot_gudang.apps.retrieve.authorization import GudangSidikModule
+from rumahiot_gudang.apps.sidik_module.authorization import GudangSidikModule
 from rumahiot_gudang.apps.store.mongodb import GudangMongoDB
 from rumahiot_gudang.apps.store.utils import RequestUtils, ResponseGenerator, GudangUtils
 
