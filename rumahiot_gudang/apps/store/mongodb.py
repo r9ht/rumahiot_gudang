@@ -179,5 +179,20 @@ class GudangMongoDB:
         col.update_one({'_id': object_id},
                        {'$set': {'currently_over_threshold': new_status}})
 
+    # Find supported board by board_uuid
+    # Input parameter : board_id (string)
+    def get_supported_board_by_uuid(self, board_uuid):
+        db = self.client[RUMAHIOT_GUDANG_DATABASE]
+        col = db[RUMAHIOT_GUDANG_SUPPORTED_BOARD_COLLECTION]
+        result = col.find_one({
+                'board_uuid': board_uuid
+            })
+        return result
+
+
+
+
+
+
 
 

@@ -1,7 +1,7 @@
 from rumahiot_gudang.apps.store.mongodb import GudangMongoDB
 from rumahiot_gudang.apps.sidik_module.authentication import GudangSidikModule
 from datetime import datetime
-from rumahiot_gudang.apps.surat_module.send_email import GudangSuratModule
+from rumahiot_gudang.apps.surat_module.send_email import send_device_android_notification_worker, send_device_notification_email_worker
 import multiprocessing
 
 class GudangUtils:
@@ -115,7 +115,6 @@ class GudangUtils:
                                 # For unknown error
                                 return False
                             else:
-                                gsurat = GudangSuratModule()
                                 # Get user detail (to get the email address)
                                 user = smodule.get_email_address(user_uuid=user_sensor['user_uuid'])
                                 # Get the master sensor (For unit & symbol)
@@ -136,22 +135,16 @@ class GudangUtils:
                                     user_sensor_uuid = user_sensor['user_sensor_uuid']
                                     device_uuid = device_data['device_uuid']
 
-                                    # Send the notification email using different process
-                                    notification_process = multiprocessing.Process(
-                                        target=gsurat.send_device_notification_email_worker,
-                                        args=(user_uuid, user_sensor_uuid, device_uuid, user_email, device_name,
-                                              user_sensor_name, threshold_value,
-                                              latest_value, time_reached, threshold_direction,
-                                              unit_symbol, notification_type))
-                                    # Start the process
-                                    notification_process.start()
+                                    # Send using different lambda execution env.
+                                    send_device_notification_email_worker(user_uuid=user_uuid, user_sensor_uuid=user_sensor_uuid, device_uuid=device_uuid, email=user_email, device_name=device_name,
+                                                                                 user_sensor_name=user_sensor_name, threshold_value=threshold_value, latest_value=latest_value,
+                                                                                 time_reached=time_reached, threshold_direction=threshold_direction, unit_symbol=unit_symbol,
+                                                                                 notification_type=notification_type)
+                                    # Send using different lambda execution env.
+                                    send_device_android_notification_worker(user_uuid=user_uuid, device_uuid=device_uuid, user_sensor_name=user_sensor_name, device_name=device_name,
+                                                                                   user_sensor_uuid=user_sensor_uuid, status='1', time_reached=time_reached)
 
-                                    # Send android notification
-                                    android_notification_process = multiprocessing.Process(target=gsurat.send_device_android_notification_worker,
-                                                                                   args=(user_sensor['user_uuid'],device_data['device_uuid'],
-                                                                                         user_sensor_name, device_name, user_sensor['user_sensor_uuid'],
-                                                                                         '1', time_reached))
-                                    android_notification_process.start()
+
                                     return True
 
                                 else:
@@ -167,7 +160,6 @@ class GudangUtils:
                                 # For unknown error
                                 return False
                             else:
-                                gsurat = GudangSuratModule()
                                 # Get user detail (to get the email address)
                                 user = smodule.get_email_address(user_uuid=user_sensor['user_uuid'])
                                 # Get the master sensor (For unit & symbol)
@@ -190,23 +182,28 @@ class GudangUtils:
                                     user_sensor_uuid = user_sensor['user_sensor_uuid']
                                     device_uuid = device_data['device_uuid']
 
-                                    # Send the notification email using different process
-                                    notification_process = multiprocessing.Process(
-                                        target=gsurat.send_device_notification_email_worker,
-                                        args=(user_uuid, user_sensor_uuid, device_uuid, user_email, device_name,
-                                              user_sensor_name, threshold_value,
-                                              latest_value, time_reached, threshold_direction,
-                                              unit_symbol, notification_type))
-                                    # Start the process
-                                    notification_process.start()
+                                    # Send using different lambda execution env.
+                                    send_device_notification_email_worker(user_uuid=user_uuid,
+                                                                          user_sensor_uuid=user_sensor_uuid,
+                                                                          device_uuid=device_uuid, email=user_email,
+                                                                          device_name=device_name,
+                                                                          user_sensor_name=user_sensor_name,
+                                                                          threshold_value=threshold_value,
+                                                                          latest_value=latest_value,
+                                                                          time_reached=time_reached,
+                                                                          threshold_direction=threshold_direction,
+                                                                          unit_symbol=unit_symbol,
+                                                                          notification_type=notification_type)
 
-                                    # Send android notification
-                                    android_notification_process = multiprocessing.Process(
-                                        target=gsurat.send_device_android_notification_worker,
-                                        args=(user_sensor['user_uuid'], device_data['device_uuid'],
-                                              user_sensor_name, device_name, user_sensor['user_sensor_uuid'],
-                                              '0', time_reached))
-                                    android_notification_process.start()
+                                    # Send using different lambda execution env.
+                                    send_device_android_notification_worker(user_uuid=user_uuid,
+                                                                                   device_uuid=device_uuid,
+                                                                                   user_sensor_name=user_sensor_name,
+                                                                                   device_name=device_name,
+                                                                                   user_sensor_uuid=user_sensor_uuid,
+                                                                                   status='0',
+                                                                                   time_reached=time_reached)
+
                                     return True
 
 
@@ -232,7 +229,6 @@ class GudangUtils:
                                 # For unknown error
                                 return False
                             else:
-                                gsurat = GudangSuratModule()
                                 # Get user detail (to get the email address)
                                 user = smodule.get_email_address(user_uuid=user_sensor['user_uuid'])
                                 # Get the master sensor (For unit & symbol)
@@ -255,22 +251,28 @@ class GudangUtils:
                                     user_sensor_uuid = user_sensor['user_sensor_uuid']
                                     device_uuid = device_data['device_uuid']
 
-                                    # Send the notification email using different process
-                                    notification_process = multiprocessing.Process(
-                                        target=gsurat.send_device_notification_email_worker,
-                                        args=(user_uuid, user_sensor_uuid, device_uuid, user_email, device_name, user_sensor_name, threshold_value,
-                                              latest_value, time_reached, threshold_direction,
-                                              unit_symbol, notification_type))
-                                    # Start the process
-                                    notification_process.start()
+                                    # Send using different lambda execution env.
+                                    send_device_notification_email_worker(user_uuid=user_uuid,
+                                                                          user_sensor_uuid=user_sensor_uuid,
+                                                                          device_uuid=device_uuid, email=user_email,
+                                                                          device_name=device_name,
+                                                                          user_sensor_name=user_sensor_name,
+                                                                          threshold_value=threshold_value,
+                                                                          latest_value=latest_value,
+                                                                          time_reached=time_reached,
+                                                                          threshold_direction=threshold_direction,
+                                                                          unit_symbol=unit_symbol,
+                                                                          notification_type=notification_type)
 
-                                    # Send android notification
-                                    android_notification_process = multiprocessing.Process(
-                                        target=gsurat.send_device_android_notification_worker,
-                                        args=(user_sensor['user_uuid'], device_data['device_uuid'],
-                                              user_sensor_name, device_name, user_sensor['user_sensor_uuid'],
-                                              '1', time_reached))
-                                    android_notification_process.start()
+                                    # Send using different lambda execution env.
+                                    send_device_android_notification_worker(user_uuid=user_uuid,
+                                                                                   device_uuid=device_uuid,
+                                                                                   user_sensor_name=user_sensor_name,
+                                                                                   device_name=device_name,
+                                                                                   user_sensor_uuid=user_sensor_uuid,
+                                                                                   status='1',
+                                                                                   time_reached=time_reached)
+
                                     return True
 
                                 else:
@@ -285,7 +287,6 @@ class GudangUtils:
                                 # For unknown error
                                 return False
                             else:
-                                gsurat = GudangSuratModule()
                                 # Get user detail (to get the email address)
                                 user = smodule.get_email_address(user_uuid=user_sensor['user_uuid'])
                                 # Get the master sensor (For unit & symbol)
@@ -308,23 +309,28 @@ class GudangUtils:
                                     user_sensor_uuid = user_sensor['user_sensor_uuid']
                                     device_uuid = device_data['device_uuid']
 
-                                    # Send the notification email using different process
-                                    notification_process = multiprocessing.Process(
-                                        target=gsurat.send_device_notification_email_worker,
-                                        args=(user_uuid, user_sensor_uuid, device_uuid, user_email, device_name,
-                                              user_sensor_name, threshold_value,
-                                              latest_value, time_reached, threshold_direction,
-                                              unit_symbol, notification_type))
-                                    # Start the process
-                                    notification_process.start()
+                                    # Send using different lambda execution env.
+                                    send_device_notification_email_worker(user_uuid=user_uuid,
+                                                                          user_sensor_uuid=user_sensor_uuid,
+                                                                          device_uuid=device_uuid, email=user_email,
+                                                                          device_name=device_name,
+                                                                          user_sensor_name=user_sensor_name,
+                                                                          threshold_value=threshold_value,
+                                                                          latest_value=latest_value,
+                                                                          time_reached=time_reached,
+                                                                          threshold_direction=threshold_direction,
+                                                                          unit_symbol=unit_symbol,
+                                                                          notification_type=notification_type)
 
-                                    # Send android notification
-                                    android_notification_process = multiprocessing.Process(
-                                        target=gsurat.send_device_android_notification_worker,
-                                        args=(user_sensor['user_uuid'], device_data['device_uuid'],
-                                              user_sensor_name, device_name, user_sensor['user_sensor_uuid'],
-                                              '0', time_reached))
-                                    android_notification_process.start()
+                                    # Send using different lambda execution env.
+                                    send_device_android_notification_worker(user_uuid=user_uuid,
+                                                                                   device_uuid=device_uuid,
+                                                                                   user_sensor_name=user_sensor_name,
+                                                                                   device_name=device_name,
+                                                                                   user_sensor_uuid=user_sensor_uuid,
+                                                                                   status='0',
+                                                                                   time_reached=time_reached)
+
                                     return True
 
 

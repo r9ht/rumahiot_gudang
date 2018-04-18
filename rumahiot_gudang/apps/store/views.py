@@ -169,3 +169,17 @@ def store_device_data(request):
             else:
                 response_data = rg.error_response_generator(400, "Incorrect field type")
                 return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
+
+# @csrf_exempt
+# def store_new_device(request):
+#     # Gudang Classes
+#     rg = ResponseGenerator()
+#     db = GudangMongoDB()
+#     gutils = GudangUtils()
+#
+#     if request.method == 'POST':
+#
+#     else:
+#         response_data = rg.error_response_generator(400, 'Bad request method')
+#         return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
+
