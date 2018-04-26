@@ -6,6 +6,13 @@ import multiprocessing
 
 class GudangUtils:
 
+    # Check if value type is int or float
+    def float_int_check(self, value):
+        if type(value) == float or type(value) == int:
+            return True
+        else:
+            return False
+
     # Check if string contain integer and it is over 0
     def integer_check(self, value_in_string):
         try:
@@ -344,6 +351,57 @@ class GudangUtils:
             else:
                 # If threshold is disabled
                 return True
+
+    def validate_sensor_pin_mapping(self, added_sensor_pin_mappings, master_sensor_reference_pin_mappings):
+        # Make sure the submitted data has the same length with master_sensor from db
+        if len(master_sensor_reference_pin_mappings) == len(added_sensor_pin_mappings):
+            master_sensor_pin_mappings_copy = master_sensor_reference_pin_mappings[:]
+            for sensor_pin_mapping in added_sensor_pin_mappings:
+                i = 0
+                while(i < len(master_sensor_pin_mappings_copy)):
+                    e = master_sensor_pin_mappings_copy[i]
+                    # Check the sensor_pin and function for each pin
+                    if sensor_pin_mapping['sensor_pin'] == e['pin'] and sensor_pin_mapping['function'] in e['function']:
+                        try:
+                            master_sensor_pin_mappings_copy.remove(e)
+                        except:
+                            return False
+                        else:
+                            pass
+                    else:
+                        i += 1
+            if len(master_sensor_pin_mappings_copy) == 0:
+                return True
+            else:
+                return False
+        else:
+            return False
+
+    def validate_board_pin_mapping(self, added_sensor_pin_mappings, supported_board_pin_mappings):
+        # Make sure submitted pin structure supported by the board
+        # Take note that the supported_board_pin_mapping should be a pointer and the value should not reinitiated for each user_sensor
+        if len(added_sensor_pin_mappings) < len(supported_board_pin_mappings):
+            for sensor_pin_mapping in added_sensor_pin_mappings:
+                i = 0
+                while (i < len(supported_board_pin_mappings)):
+                    e = supported_board_pin_mappings[i]
+                    if sensor_pin_mapping['device_pin_name'] == e['name'] and sensor_pin_mapping['device_pin'] == e['pin'] and sensor_pin_mapping['device_arduino_pin'] == e['arduino_pin'] and sensor_pin_mapping['function'] in e['functions']:
+                        try :
+                            supported_board_pin_mappings.remove(e)
+                        except:
+                            return False
+                        else:
+                            pass
+                    else:
+                        i += 1
+            return True
+        else:
+            return False
+
+
+
+
+
 
 class ResponseGenerator:
     # generate error response in dict format

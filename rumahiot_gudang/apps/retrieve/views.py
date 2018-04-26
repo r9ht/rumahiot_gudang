@@ -133,30 +133,34 @@ def retrieve_device_list(request):
                                 sensor_detail['threshold_enabled'] = user_sensor['threshold_enabled']
                                 sensor_detail['threshold_direction'] = user_sensor['threshold_direction']
                                 master_sensor = db.get_master_sensor_by_uuid(user_sensor['master_sensor_uuid'])
-                                sensor_detail['sensor_image'] = master_sensor['master_sensor_image']
                                 sensor_detail['master_sensor_name'] = master_sensor['master_sensor_name']
                                 # get lastest data value
                                 # take the first element, as the result length is one, by iterating over mongo cursor (as it cannot be accessed directly with index)
                                 device_latest_datas = db.get_n_latest_device_data(result['device_uuid'], 1)
 
-                                # TODO : Add latest data too for the device without any data
-                                for device_latest_data in device_latest_datas:
-                                    for sensor_data in device_latest_data['sensor_datas']:
-                                        if sensor_data['user_sensor_uuid'] == user_sensor['user_sensor_uuid']:
-                                            sensor_detail['latest_value_added'] = device_latest_data['time_added']
-                                            sensor_detail['latest_value'] = sensor_data['user_sensor_value']
+                                # Check if there's latest data available
+                                if device_latest_datas.count() != 0:
+                                    for device_latest_data in device_latest_datas:
+                                        for sensor_data in device_latest_data['sensor_datas']:
+                                            if sensor_data['user_sensor_uuid'] == user_sensor['user_sensor_uuid']:
+                                                sensor_detail['latest_value_added'] = device_latest_data['time_added']
+                                                sensor_detail['latest_value'] = sensor_data['user_sensor_value']
 
-                                # Check the threshold for quick status for sensor with enabled threshold
-                                if sensor_detail['threshold_enabled']:
-                                    if sensor_detail['threshold_direction'] == "1":
-                                        if sensor_detail['latest_value'] > sensor_detail['sensor_threshold']:
-                                            over_threshold_total += 1
+                                    # Check the threshold for quick status for sensor with enabled threshold
+                                    if sensor_detail['threshold_enabled']:
+                                        if sensor_detail['threshold_direction'] == "1":
+                                            if sensor_detail['latest_value'] > sensor_detail['sensor_threshold']:
+                                                over_threshold_total += 1
 
-                                    elif sensor_detail['threshold_direction'] == "-1":
-                                        if sensor_detail['latest_value'] < sensor_detail['sensor_threshold']:
-                                            over_threshold_total += 1
+                                        elif sensor_detail['threshold_direction'] == "-1":
+                                            if sensor_detail['latest_value'] < sensor_detail['sensor_threshold']:
+                                                over_threshold_total += 1
+                                else:
+                                    # If theres no data yet
+                                    sensor_detail['latest_value_added'] = None
+                                    sensor_detail['latest_value'] = None
 
-                                # Add detail about sensor unit convertion for easier api call
+                                    # Add detail about sensor unit convertion for easier api call
                                 sensor_detail['unit_name'] = master_sensor['master_sensor_default_unit_name']
                                 sensor_detail['unit_symbol'] = master_sensor['master_sensor_default_unit_symbol']
                                 preparsed_result['device_sensors'].append(sensor_detail)
@@ -346,43 +350,6 @@ def retrieve_device_data(request):
             else:
                 response_data = rg.error_response_generator(400, token['error'])
                 return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
-
-
-# return supported board list for adding device
-def retrieve_supported_board_list(request):
-    # Start time
-    start_time = timeit.default_timer()
-    # Gudang class
-    rg = ResponseGenerator()
-    requtils = RequestUtils()
-    auth = GudangSidikModule()
-    db = GudangMongoDB()
-    gutils = GudangUtils()
-
-    if request.method == "GET":
-        supported_boards = db.get_supported_board()
-        data = {
-            'supported_boards': [],
-            'boards_count': supported_boards.count(True)
-        }
-        # append the result into the response
-        for supported_board in supported_boards:
-            board = {}
-            board['board_uuid'] = supported_board['board_uuid']
-            board['board_name'] = supported_board['board_name']
-            board['pins'] = supported_board['pins']
-            board['chip'] = supported_board['chip']
-            data['supported_boards'].append(board)
-
-        # Finish time
-        data['time_to_generate'] = timeit.default_timer() - start_time
-        response_data = rg.data_response_generator(data)
-        return HttpResponse(json.dumps(response_data), content_type="application/json",
-                            status=200)
-    else:
-        response_data = rg.error_response_generator(400, "Bad request method")
-        return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
-
 
 def retrieve_device_data_statistic(request):
     # Start time
@@ -615,7 +582,7 @@ def retrieve_device_data_statistic_monthly(request):
 
                                     # Finsih time
                                     data['time_to_generate'] = timeit.default_timer() - start_time
-                                    # Generater response object
+                                    # Generate response object
                                     response_data = rg.data_response_generator(data)
                                     return HttpResponse(json.dumps(response_data), content_type="application/json",status=200)
                                 else:
@@ -640,7 +607,6 @@ def retrieve_device_data_statistic_monthly(request):
     else:
         response_data = rg.error_response_generator(400, "Bad request method")
         return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
-
 
 def retrieve_device_device_data_statistic_yearly(request):
     # Start time
@@ -761,3 +727,148 @@ def retrieve_device_device_data_statistic_yearly(request):
     else:
         response_data = rg.error_response_generator(400, "Bad request method")
         return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
+
+def retrieve_user_wifi_connection_list(request):
+    # Gudang class
+    rg = ResponseGenerator()
+    requtils = RequestUtils()
+    auth = GudangSidikModule()
+    db = GudangMongoDB()
+    gutils = GudangUtils()
+
+    if request.method == 'GET':
+        # Check the token
+        try:
+            token = requtils.get_access_token(request)
+        except KeyError:
+            response_data = rg.error_response_generator(400, 'Please define the authorization header')
+            return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
+        else:
+            if token['token'] != None:
+                user = auth.get_user_data(token['token'])
+                # Check token validity
+                if user['user_uuid'] != None:
+
+                    # Get all conenction detail
+                    wifi_connections = db.get_user_wifi_connection(user_uuid=user['user_uuid'])
+                    data = {
+                        'user_uuid' : user['user_uuid'],
+                        'wifi_connections' : [],
+                        'wifi_connection_count': wifi_connections.count(True)
+                    }
+
+                    # Append to data
+                    for wifi_connection in wifi_connections:
+                        # Pop the id
+                        wifi_connection.pop('_id')
+                        data['wifi_connections'].append(wifi_connection)
+
+                    # Generate response object
+                    response_data = rg.data_response_generator(data)
+                    return HttpResponse(json.dumps(response_data), content_type='application/json', status=200)
+
+                else:
+                    response_data = rg.error_response_generator(400, user['error'])
+                    return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
+            else:
+                response_data = rg.error_response_generator(400, token['error'])
+                return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
+    else:
+        response_data = rg.error_response_generator(400, 'Bad request method')
+        return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
+
+def retrieve_master_sensor_reference_list(request):
+    # Gudang class
+    rg = ResponseGenerator()
+    requtils = RequestUtils()
+    auth = GudangSidikModule()
+    db = GudangMongoDB()
+    gutils = GudangUtils()
+
+    if request.method == 'GET':
+        # Check the token
+        try:
+            token = requtils.get_access_token(request)
+        except KeyError:
+            response_data = rg.error_response_generator(400, 'Please define the authorization header')
+            return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
+        else:
+            if token['token'] != None:
+                user = auth.get_user_data(token['token'])
+                # Check token validity
+                if user['user_uuid'] != None:
+
+                    # Get all master sensor reference (for adding new sensor)
+                    master_sensor_references = db.get_all_master_sensor_reference()
+                    data = {
+                        'master_sensor_references' : [],
+                        'master_sensor_reference_count': master_sensor_references.count(True)
+                    }
+
+                    # Append to data
+                    for master_sensor_reference in master_sensor_references:
+                        # Pop the id
+                        master_sensor_reference.pop('_id')
+                        data['master_sensor_references'].append(master_sensor_reference)
+
+                    # Generate response object
+                    response_data = rg.data_response_generator(data)
+                    return HttpResponse(json.dumps(response_data), content_type='application/json', status=200)
+
+                else:
+                    response_data = rg.error_response_generator(400, user['error'])
+                    return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
+            else:
+                response_data = rg.error_response_generator(400, token['error'])
+                return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
+    else:
+        response_data = rg.error_response_generator(400, 'Bad request method')
+        return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
+
+def retrieve_supported_board_list(request):
+    # Gudang class
+    rg = ResponseGenerator()
+    requtils = RequestUtils()
+    auth = GudangSidikModule()
+    db = GudangMongoDB()
+    gutils = GudangUtils()
+
+    if request.method == 'GET':
+        # Check the token
+        try:
+            token = requtils.get_access_token(request)
+        except KeyError:
+            response_data = rg.error_response_generator(400, 'Please define the authorization header')
+            return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
+        else:
+            if token['token'] != None:
+                user = auth.get_user_data(token['token'])
+                # Check token validity
+                if user['user_uuid'] != None:
+
+                    # Get all supported board
+                    supported_boards = db.get_all_supported_board()
+                    data = {
+                        'supported_boards' : [],
+                        'supported_boards_count': supported_boards.count(True)
+                    }
+
+                    # Append to data
+                    for supported_board in supported_boards:
+                        # Pop the id
+                        supported_board.pop('_id')
+                        data['supported_boards'].append(supported_board)
+
+                    # Generate response object
+                    response_data = rg.data_response_generator(data)
+                    return HttpResponse(json.dumps(response_data), content_type='application/json', status=200)
+
+                else:
+                    response_data = rg.error_response_generator(400, user['error'])
+                    return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
+            else:
+                response_data = rg.error_response_generator(400, token['error'])
+                return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
+    else:
+        response_data = rg.error_response_generator(400, 'Bad request method')
+        return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)

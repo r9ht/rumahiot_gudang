@@ -9,7 +9,10 @@ from rumahiot_gudang.settings import RUMAHIOT_GUDANG_MONGO_HOST, \
     RUMAHIOT_GUDANG_SENSOR_DETAIL_COLLECTION, \
     RUMAHIOT_GUDANG_MASTER_SENSORS_COLLECTION, \
     RUMAHIOT_GUDANG_USER_SENSORS_COLLECTION, \
-    RUMAHIOT_GUDANG_SUPPORTED_BOARD_COLLECTION
+    RUMAHIOT_GUDANG_SUPPORTED_BOARD_COLLECTION, \
+    RUMAHIOT_GUDANG_MASTER_SENSOR_REFERENCES_COLLECTION, \
+    RUMAHIOT_GUDANG_USER_SENSOR_MAPPINGS_COLLECTIONS, \
+    RUMAHIOT_GUDANG_USER_WIFI_CONNECTIONS_COLLECTION
 from bson.json_util import dumps
 import json
 
@@ -164,8 +167,8 @@ class GudangMongoDB:
                                                      'threshold_enabled': threshold_enabled,
                                                      'user_sensor_name':new_user_sensor_name}})
 
-    # get supported board list
-    def get_supported_board(self):
+    # get all supported board list
+    def get_all_supported_board(self):
         db = self.client[RUMAHIOT_GUDANG_DATABASE]
         col = db[RUMAHIOT_GUDANG_SUPPORTED_BOARD_COLLECTION]
         result = col.find({})
@@ -189,10 +192,101 @@ class GudangMongoDB:
             })
         return result
 
+    # Put user sensor into db
+    # Input parameter : user_sensor (dict)
+    def put_user_sensor(self, user_sensor):
+        result = self.put_data(database=RUMAHIOT_GUDANG_DATABASE, collection=RUMAHIOT_GUDANG_USER_SENSORS_COLLECTION, data=user_sensor)
+        return result
 
+    # Put user sensor mapping into db
+    # Input parameter : user_sensor_mapping(dict)
+    def put_user_sensor_mapping(self, user_sensor_mapping):
+        result = self.put_data(database=RUMAHIOT_GUDANG_DATABASE, collection=RUMAHIOT_GUDANG_USER_SENSOR_MAPPINGS_COLLECTIONS, data=user_sensor_mapping)
+        return result
 
+    # Put user device into db
+    # Input parameter : user_device (dict)
+    def put_user_device(self, user_device):
+        result = self.put_data(database=RUMAHIOT_GUDANG_DATABASE, collection=RUMAHIOT_GUDANG_USERS_DEVICE_COLLECTION, data=user_device)
+        return result
 
+    # Get all master sensor reference (For adding and configuring new device
+    def get_all_master_sensor_reference(self):
+        db = self.client[RUMAHIOT_GUDANG_DATABASE]
+        col = db[RUMAHIOT_GUDANG_MASTER_SENSOR_REFERENCES_COLLECTION]
+        result = col.find({})
+        return result
 
+    # Get master_sensor_reference by uuid
+    # Input : master_sensor_reference_uuid (string)
+    def get_master_sensor_reference_by_uuid(self, master_sensor_reference_uuid):
+        db = self.client[RUMAHIOT_GUDANG_DATABASE]
+        col = db[RUMAHIOT_GUDANG_MASTER_SENSOR_REFERENCES_COLLECTION]
+        result = col.find_one({
+            'master_sensor_reference_uuid': master_sensor_reference_uuid
+        })
+        return result
 
+    # Get all sensor mappings
+    def get_all_user_sensor_mappings(self):
+        db = self.client[RUMAHIOT_GUDANG_DATABASE]
+        col = db[RUMAHIOT_GUDANG_USER_SENSOR_MAPPINGS_COLLECTIONS]
+        result = col.find({})
+        return result
 
+    # Get sensor mapping by user_sensor_mapping_uuid
+    def get_sensor_mapping_by_user_sensor_mapping_uuid(self, user_sensor_mapping_uuid):
+        db = self.client[RUMAHIOT_GUDANG_DATABASE]
+        col = db[RUMAHIOT_GUDANG_USER_SENSOR_MAPPINGS_COLLECTIONS]
+        result = col.find_one({
+            'user_sensor_mapping_uuid': user_sensor_mapping_uuid
+        })
+        return result
+
+    # Get user wifi connection data
+    # Input parameter : user_uuid(string)
+    def get_user_wifi_connection(self, user_uuid):
+        db = self.client[RUMAHIOT_GUDANG_DATABASE]
+        col = db[RUMAHIOT_GUDANG_USER_WIFI_CONNECTIONS_COLLECTION]
+        result = col.find({
+            'user_uuid' : user_uuid
+        })
+        return result
+
+    # Add new user wifi connection
+    # Input parameter : (user_wifi_connection, dict)
+    def put_user_wifi_connection(self, user_wifi_connection):
+        result = self.put_data(database=RUMAHIOT_GUDANG_DATABASE, collection=RUMAHIOT_GUDANG_USER_WIFI_CONNECTIONS_COLLECTION, data=user_wifi_connection)
+        return result
+
+    # Get user_wifi_connection using user_wifi_connection_uuid and user_uuid
+    # Input parameter : user_wifi_connection_uuid (string), user_uuid(string)
+    def get_user_wifi_connection_by_uuid(self, user_wifi_connection_uuid, user_uuid):
+        db = self.client[RUMAHIOT_GUDANG_DATABASE]
+        col = db[RUMAHIOT_GUDANG_USER_WIFI_CONNECTIONS_COLLECTION]
+        result = col.find_one({
+            'user_uuid': user_uuid,
+            'user_wifi_connection_uuid': user_wifi_connection_uuid
+        })
+        return result
+
+    # Remove specified user_wifi_connection
+    # Input parameter : user_wifi_uuid (string)
+    def remove_user_wifi_connection_by_uuid(self, user_wifi_connection_uuid):
+        db = self.client[RUMAHIOT_GUDANG_DATABASE]
+        col = db[RUMAHIOT_GUDANG_USER_WIFI_CONNECTIONS_COLLECTION]
+        col.remove({
+            'user_wifi_connection_uuid': user_wifi_connection_uuid
+        })
+
+    # Get user device using user_wifi_connection_uuid
+    def get_user_devices_by_user_wifi_connection_uuid(self, user_uuid, user_wifi_connection_uuid):
+        db = self.client[RUMAHIOT_GUDANG_DATABASE]
+        col = db[RUMAHIOT_GUDANG_USERS_DEVICE_COLLECTION]
+        result = col.find({
+            'user_uuid' : user_uuid,
+            'user_wifi_connection_uuid': user_wifi_connection_uuid
+        })
+
+        return result
 

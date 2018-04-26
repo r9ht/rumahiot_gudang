@@ -6,7 +6,6 @@ class EmailLoginForm(forms.Form):
     email = forms.EmailField(required=True, max_length=254)
     password = forms.CharField(required=True, max_length=128)
 
-
 class UpdateUserSensorDetailForm(forms.Form):
     user_sensor_uuid = forms.CharField(required=True, max_length=128)
     new_threshold = forms.CharField(required=False, max_length=32)
@@ -38,3 +37,19 @@ class UpdateUserSensorDetailForm(forms.Form):
         else:
             raise forms.ValidationError(_('Invalid parameter or value submitted'))
 
+class AddUserWifiConnectionForm(forms.Form):
+    connection_name = forms.CharField(required=True, max_length=32)
+    ssid = forms.CharField(required=True, max_length=32)
+    # 1 for true, 0 for false
+    security_enabled = forms.CharField(required=True, max_length=1)
+    # Just fill password with "-" if security is disabled
+    password = forms.CharField(required=False, max_length=63)
+
+class UpdateUserWifiConnectionForm(forms.Form):
+    user_wifi_connection_uuid = forms.CharField(required=True, max_length=32)
+    connection_name = forms.CharField(required=True, max_length=32)
+    ssid = forms.CharField(required=True, max_length=32)
+    # 1 for true, 0 for false
+    security_enabled = forms.CharField(required=True, max_length=1)
+    # Just fill password with "-" if security is disabled
+    password = forms.CharField(required=False, max_length=63)
