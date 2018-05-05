@@ -14,7 +14,7 @@ from rumahiot_gudang.settings import RUMAHIOT_GUDANG_MONGO_HOST, \
     RUMAHIOT_GUDANG_USER_SENSOR_MAPPINGS_COLLECTIONS, \
     RUMAHIOT_GUDANG_USER_WIFI_CONNECTIONS_COLLECTION
 from bson.json_util import dumps
-import json
+import json, datetime
 
 
 class GudangMongoDB:
@@ -290,3 +290,12 @@ class GudangMongoDB:
 
         return result
 
+    # Update user wifi connection data
+    def update_user_wifi_connection(self, object_id, new_connection_name, new_ssid, new_security_enabled, new_password):
+        db = self.client[RUMAHIOT_GUDANG_DATABASE]
+        col = db[RUMAHIOT_GUDANG_USER_WIFI_CONNECTIONS_COLLECTION]
+        col.update_one({'_id': object_id}, {'$set': {'connection_name': new_connection_name,
+                                                     'ssid': new_ssid,
+                                                     'security_enabled': new_security_enabled,
+                                                     'password':new_password,
+                                                     'time_updated': datetime.datetime.now().timestamp()}})
