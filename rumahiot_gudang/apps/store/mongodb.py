@@ -86,7 +86,7 @@ class GudangMongoDB:
         # gt operator stand for greater than
         # Filter using specified time range, limit, skip, and direction
         results = col.find({'$and': [{'device_uuid': device_uuid}, {'time_added': {'$lte': to_date}},
-                                     {'time_added': {'$gte': from_date}}]}).sort([("_id", direction)]).skip(skip).limit(limit)
+                                     {'time_added': {'$gte': from_date}}]}).sort([("time_added", direction)]).skip(skip).limit(limit)
         return results
 
     # Get device sensor average, min, and maximum sensor value from certain range
@@ -111,6 +111,9 @@ class GudangMongoDB:
                         'user_sensor_value_min': { '$min': '$sensor_datas.user_sensor_value'},
                         'data_count': { '$sum': 1}
                     }
+                },
+                {
+                    '$sort': {'time_added' : 1}
                 }
             ]
         )
@@ -151,10 +154,11 @@ class GudangMongoDB:
 
     # get n latest device data
     # input parameter : device_uuid(string), n (integer)
+    # Datas are in descending order
     def get_n_latest_device_data(self, device_uuid, n):
         db = self.client[RUMAHIOT_GUDANG_DATABASE]
         col = db[RUMAHIOT_GUDANG_DEVICE_DATA_COLLECTION]
-        results = col.find({'device_uuid': device_uuid}).sort([("_id", -1)]).limit(n)
+        results = col.find({'device_uuid': device_uuid}).sort([("time_added", -1)]).limit(n)
         return results
 
     # update user sensor detail
