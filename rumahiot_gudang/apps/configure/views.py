@@ -28,8 +28,8 @@ def update_user_sensor_detail(request):
         try:
             token = requtils.get_access_token(request)
         except KeyError:
-            response_data = rg.error_response_generator(403, 'Please define the authorization header')
-            return HttpResponse(json.dumps(response_data), content_type='application/json', status=403)
+            response_data = rg.error_response_generator(401, 'Please define the authorization header')
+            return HttpResponse(json.dumps(response_data), content_type='application/json', status=401)
         else:
             if token['token'] != None:
                 user = auth.get_user_data(token['token'])
@@ -87,11 +87,11 @@ def update_user_sensor_detail(request):
                         return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
 
                 else:
-                    response_data = rg.error_response_generator(403, user['error'])
-                    return HttpResponse(json.dumps(response_data), content_type='application/json', status=403)
+                    response_data = rg.error_response_generator(401, user['error'])
+                    return HttpResponse(json.dumps(response_data), content_type='application/json', status=401)
             else:
-                response_data = rg.error_response_generator(403, token['error'])
-                return HttpResponse(json.dumps(response_data), content_type='application/json', status=403)
+                response_data = rg.error_response_generator(401, token['error'])
+                return HttpResponse(json.dumps(response_data), content_type='application/json', status=401)
     else:
         response_data = rg.error_response_generator(400, 'Bad request method')
         return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
@@ -110,8 +110,8 @@ def add_user_wifi_connection(request):
         try:
             token = requtils.get_access_token(request)
         except KeyError:
-            response_data = rg.error_response_generator(403, 'Please define the authorization header')
-            return HttpResponse(json.dumps(response_data), content_type='application/json', status=403)
+            response_data = rg.error_response_generator(401, 'Please define the authorization header')
+            return HttpResponse(json.dumps(response_data), content_type='application/json', status=401)
         else:
             if token['token'] != None:
                 user = auth.get_user_data(token['token'])
@@ -161,11 +161,11 @@ def add_user_wifi_connection(request):
                         response_data = rg.error_response_generator(400, 'invalid or missing parameter submitted')
                         return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
                 else:
-                    response_data = rg.error_response_generator(403, user['error'])
-                    return HttpResponse(json.dumps(response_data), content_type='application/json', status=403)
+                    response_data = rg.error_response_generator(401, user['error'])
+                    return HttpResponse(json.dumps(response_data), content_type='application/json', status=401)
             else:
-                response_data = rg.error_response_generator(403, token['error'])
-                return HttpResponse(json.dumps(response_data), content_type="application/json", status=403)
+                response_data = rg.error_response_generator(401, token['error'])
+                return HttpResponse(json.dumps(response_data), content_type="application/json", status=401)
     else:
         response_data = rg.error_response_generator(400, 'Bad request method')
         return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
@@ -184,8 +184,8 @@ def update_user_wifi_connection(request):
         try:
             token = requtils.get_access_token(request)
         except KeyError:
-            response_data = rg.error_response_generator(403, 'Please define the authorization header')
-            return HttpResponse(json.dumps(response_data), content_type='application/json', status=403)
+            response_data = rg.error_response_generator(401, 'Please define the authorization header')
+            return HttpResponse(json.dumps(response_data), content_type='application/json', status=401)
         else:
             if token['token'] != None:
                 user = auth.get_user_data(token['token'])
@@ -226,11 +226,11 @@ def update_user_wifi_connection(request):
                         response_data = rg.error_response_generator(400, 'invalid or missing parameter submitted')
                         return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
                 else:
-                    response_data = rg.error_response_generator(403, user['error'])
-                    return HttpResponse(json.dumps(response_data), content_type='application/json', status=403)
+                    response_data = rg.error_response_generator(401, user['error'])
+                    return HttpResponse(json.dumps(response_data), content_type='application/json', status=401)
             else:
-                response_data = rg.error_response_generator(403, token['error'])
-                return HttpResponse(json.dumps(response_data), content_type="application/json", status=403)
+                response_data = rg.error_response_generator(401, token['error'])
+                return HttpResponse(json.dumps(response_data), content_type="application/json", status=401)
     else:
         response_data = rg.error_response_generator(400, 'Bad request method')
         return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
@@ -249,8 +249,8 @@ def remove_user_wifi_connection(request, user_wifi_connection_uuid):
         try:
             token = requtils.get_access_token(request)
         except KeyError:
-            response_data = rg.error_response_generator(403, 'Please define the authorization header')
-            return HttpResponse(json.dumps(response_data), content_type='application/json', status=403)
+            response_data = rg.error_response_generator(401, 'Please define the authorization header')
+            return HttpResponse(json.dumps(response_data), content_type='application/json', status=401)
         else:
             if token['token'] != None:
                 user = auth.get_user_data(token['token'])
@@ -274,11 +274,11 @@ def remove_user_wifi_connection(request, user_wifi_connection_uuid):
                         response_data = rg.error_response_generator(400, 'invalid user wifi connection uuid')
                         return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
                 else:
-                    response_data = rg.error_response_generator(403, user['error'])
-                    return HttpResponse(json.dumps(response_data), content_type='application/json', status=403)
+                    response_data = rg.error_response_generator(401, user['error'])
+                    return HttpResponse(json.dumps(response_data), content_type='application/json', status=401)
             else:
-                response_data = rg.error_response_generator(403, token['error'])
-                return HttpResponse(json.dumps(response_data), content_type="application/json", status=403)
+                response_data = rg.error_response_generator(401, token['error'])
+                return HttpResponse(json.dumps(response_data), content_type="application/json", status=401)
     else:
         response_data = rg.error_response_generator(400, 'Bad request method')
         return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)

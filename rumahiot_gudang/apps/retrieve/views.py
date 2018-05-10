@@ -66,8 +66,8 @@ def retrieve_device_list(request):
         try:
             token = requtils.get_access_token(request)
         except KeyError:
-            response_data = rg.error_response_generator(403, "Please define the authorization header")
-            return HttpResponse(json.dumps(response_data), content_type="application/json", status=403)
+            response_data = rg.error_response_generator(401, "Please define the authorization header")
+            return HttpResponse(json.dumps(response_data), content_type="application/json", status=401)
         else:
             if token['token'] != None:
                 user = auth.get_user_data(token['token'])
@@ -187,11 +187,11 @@ def retrieve_device_list(request):
                         response_data = rg.error_response_generator(400, "Invalid get parameter value")
                         return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
                 else:
-                    response_data = rg.error_response_generator(403, user['error'])
-                    return HttpResponse(json.dumps(response_data), content_type="application/json", status=403)
+                    response_data = rg.error_response_generator(401, user['error'])
+                    return HttpResponse(json.dumps(response_data), content_type="application/json", status=401)
             else:
-                response_data = rg.error_response_generator(403, token['error'])
-                return HttpResponse(json.dumps(response_data), content_type="application/json", status=403)
+                response_data = rg.error_response_generator(401, token['error'])
+                return HttpResponse(json.dumps(response_data), content_type="application/json", status=401)
 
 # Retrieve user device data (Internally using JWT and device id)
 # using GET because we need url parameter for easier access
@@ -242,8 +242,8 @@ def retrieve_device_data(request):
         try:
             token = requtils.get_access_token(request)
         except KeyError:
-            response_data = rg.error_response_generator(403, "Please define the authorization header")
-            return HttpResponse(json.dumps(response_data), content_type="application/json", status=403)
+            response_data = rg.error_response_generator(401, "Please define the authorization header")
+            return HttpResponse(json.dumps(response_data), content_type="application/json", status=401)
         else:
             if token['token'] != None:
                 # Check the device uuid
@@ -345,14 +345,14 @@ def retrieve_device_data(request):
                             response_data = rg.error_response_generator(400, "Invalid get parameter value")
                             return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
                     else:
-                        response_data = rg.error_response_generator(403, user['error'])
-                        return HttpResponse(json.dumps(response_data), content_type="application/json", status=403)
+                        response_data = rg.error_response_generator(401, user['error'])
+                        return HttpResponse(json.dumps(response_data), content_type="application/json", status=401)
                 else:
                     response_data = rg.error_response_generator(400, 'Please specify the Device UUID')
                     return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
             else:
-                response_data = rg.error_response_generator(403, token['error'])
-                return HttpResponse(json.dumps(response_data), content_type="application/json", status=403)
+                response_data = rg.error_response_generator(401, token['error'])
+                return HttpResponse(json.dumps(response_data), content_type="application/json", status=401)
 
 def retrieve_device_data_statistic(request):
     # Start time
@@ -382,8 +382,8 @@ def retrieve_device_data_statistic(request):
                     try:
                         token = requtils.get_access_token(request)
                     except KeyError:
-                        response_data = rg.error_response_generator(403, "Please define the authorization header")
-                        return HttpResponse(json.dumps(response_data), content_type="application/json", status=403)
+                        response_data = rg.error_response_generator(401, "Please define the authorization header")
+                        return HttpResponse(json.dumps(response_data), content_type="application/json", status=401)
                     else:
                         if token['token'] != None:
                             user = auth.get_user_data(token['token'])
@@ -471,13 +471,13 @@ def retrieve_device_data_statistic(request):
                                     return HttpResponse(json.dumps(response_data), content_type="application/json",
                                                         status=400)
                             else:
-                                response_data = rg.error_response_generator(403, user['error'])
+                                response_data = rg.error_response_generator(401, user['error'])
                                 return HttpResponse(json.dumps(response_data), content_type="application/json",
-                                                    status=403)
+                                                    status=401)
 
                         else:
-                            response_data = rg.error_response_generator(403, token['error'])
-                            return HttpResponse(json.dumps(response_data), content_type="application/json", status=403)
+                            response_data = rg.error_response_generator(401, token['error'])
+                            return HttpResponse(json.dumps(response_data), content_type="application/json", status=401)
                 else:
                     response_data = rg.error_response_generator(400, 'To Time must be larger than from time')
                     return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
@@ -516,8 +516,8 @@ def retrieve_device_data_statistic_monthly(request):
                 try:
                     token = requtils.get_access_token(request)
                 except KeyError:
-                    response_data = rg.error_response_generator(403, "Please define the authorization header")
-                    return HttpResponse(json.dumps(response_data), content_type="application/json", status=403)
+                    response_data = rg.error_response_generator(401, "Please define the authorization header")
+                    return HttpResponse(json.dumps(response_data), content_type="application/json", status=401)
                 else:
                     if token['token'] != None:
                         user = auth.get_user_data(token['token'])
@@ -595,11 +595,11 @@ def retrieve_device_data_statistic_monthly(request):
                                 response_data = rg.error_response_generator(400, 'Invalid device UUID')
                                 return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
                         else:
-                                response_data = rg.error_response_generator(403, user['error'])
-                                return HttpResponse(json.dumps(response_data), content_type="application/json", status=403)
+                                response_data = rg.error_response_generator(401, user['error'])
+                                return HttpResponse(json.dumps(response_data), content_type="application/json", status=401)
                     else:
-                        response_data = rg.error_response_generator(403, token['error'])
-                        return HttpResponse(json.dumps(response_data), content_type="application/json", status=403)
+                        response_data = rg.error_response_generator(401, token['error'])
+                        return HttpResponse(json.dumps(response_data), content_type="application/json", status=401)
 
             else:
                 response_data = rg.error_response_generator(400, "Incorrect parameter data value")
@@ -633,8 +633,8 @@ def retrieve_device_device_data_statistic_yearly(request):
                 try:
                     token = requtils.get_access_token(request)
                 except KeyError:
-                    response_data = rg.error_response_generator(403, "Please define the authorization header")
-                    return HttpResponse(json.dumps(response_data), content_type="application/json", status=403)
+                    response_data = rg.error_response_generator(401, "Please define the authorization header")
+                    return HttpResponse(json.dumps(response_data), content_type="application/json", status=401)
                 else:
                     if token['token'] != None:
                         user = auth.get_user_data(token['token'])
@@ -715,11 +715,11 @@ def retrieve_device_device_data_statistic_yearly(request):
                                 return HttpResponse(json.dumps(response_data), content_type="application/json",
                                                     status=400)
                         else:
-                            response_data = rg.error_response_generator(403, user['error'])
-                            return HttpResponse(json.dumps(response_data), content_type="application/json", status=403)
+                            response_data = rg.error_response_generator(401, user['error'])
+                            return HttpResponse(json.dumps(response_data), content_type="application/json", status=401)
                     else:
-                        response_data = rg.error_response_generator(403, token['error'])
-                        return HttpResponse(json.dumps(response_data), content_type="application/json", status=403)
+                        response_data = rg.error_response_generator(401, token['error'])
+                        return HttpResponse(json.dumps(response_data), content_type="application/json", status=401)
 
             else:
                 response_data = rg.error_response_generator(400, "Incorrect parameter data value")
@@ -744,8 +744,8 @@ def retrieve_user_wifi_connection_list(request):
         try:
             token = requtils.get_access_token(request)
         except KeyError:
-            response_data = rg.error_response_generator(403, 'Please define the authorization header')
-            return HttpResponse(json.dumps(response_data), content_type='application/json', status=403)
+            response_data = rg.error_response_generator(401, 'Please define the authorization header')
+            return HttpResponse(json.dumps(response_data), content_type='application/json', status=401)
         else:
             if token['token'] != None:
                 user = auth.get_user_data(token['token'])
@@ -783,11 +783,11 @@ def retrieve_user_wifi_connection_list(request):
                     return HttpResponse(json.dumps(response_data), content_type='application/json', status=200)
 
                 else:
-                    response_data = rg.error_response_generator(403, user['error'])
-                    return HttpResponse(json.dumps(response_data), content_type='application/json', status=403)
+                    response_data = rg.error_response_generator(401, user['error'])
+                    return HttpResponse(json.dumps(response_data), content_type='application/json', status=401)
             else:
-                response_data = rg.error_response_generator(403, token['error'])
-                return HttpResponse(json.dumps(response_data), content_type="application/json", status=403)
+                response_data = rg.error_response_generator(401, token['error'])
+                return HttpResponse(json.dumps(response_data), content_type="application/json", status=401)
     else:
         response_data = rg.error_response_generator(400, 'Bad request method')
         return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
@@ -805,8 +805,8 @@ def retrieve_master_sensor_reference_list(request):
         try:
             token = requtils.get_access_token(request)
         except KeyError:
-            response_data = rg.error_response_generator(403, 'Please define the authorization header')
-            return HttpResponse(json.dumps(response_data), content_type='application/json', status=403)
+            response_data = rg.error_response_generator(401, 'Please define the authorization header')
+            return HttpResponse(json.dumps(response_data), content_type='application/json', status=401)
         else:
             if token['token'] != None:
                 user = auth.get_user_data(token['token'])
@@ -824,6 +824,23 @@ def retrieve_master_sensor_reference_list(request):
                     for master_sensor_reference in master_sensor_references:
                         # Pop the id
                         master_sensor_reference.pop('_id')
+                        # Detailed structure for value type
+                        sensor_value_type = []
+                        # Grab other detail from master sensor
+                        for master_sensor_uuid in master_sensor_reference['master_sensor_uuids']:
+                            # Value scale and unit
+                            master_sensor = db.get_master_sensor_by_uuid(master_sensor_uuid=master_sensor_uuid)
+                            master_sensor_value_type = {
+                                'value_type': master_sensor['master_sensor_name'],
+                                'unit': master_sensor['master_sensor_default_unit_name'],
+                                'unit_symbol': master_sensor['master_sensor_default_unit_symbol']
+                            }
+                            sensor_value_type.append(master_sensor_value_type)
+
+                        # Remove uuid mapping
+                        master_sensor_reference.pop('master_sensor_uuids')
+                        master_sensor_reference['sensor_value_type'] = sensor_value_type
+
                         data['master_sensor_references'].append(master_sensor_reference)
 
                     # Generate response object
@@ -831,11 +848,11 @@ def retrieve_master_sensor_reference_list(request):
                     return HttpResponse(json.dumps(response_data), content_type='application/json', status=200)
 
                 else:
-                    response_data = rg.error_response_generator(403, user['error'])
-                    return HttpResponse(json.dumps(response_data), content_type='application/json', status=403)
+                    response_data = rg.error_response_generator(401, user['error'])
+                    return HttpResponse(json.dumps(response_data), content_type='application/json', status=401)
             else:
-                response_data = rg.error_response_generator(403, token['error'])
-                return HttpResponse(json.dumps(response_data), content_type="application/json", status=403)
+                response_data = rg.error_response_generator(401, token['error'])
+                return HttpResponse(json.dumps(response_data), content_type="application/json", status=401)
     else:
         response_data = rg.error_response_generator(400, 'Bad request method')
         return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
@@ -853,8 +870,8 @@ def retrieve_supported_board_list(request):
         try:
             token = requtils.get_access_token(request)
         except KeyError:
-            response_data = rg.error_response_generator(403, 'Please define the authorization header')
-            return HttpResponse(json.dumps(response_data), content_type='application/json', status=403)
+            response_data = rg.error_response_generator(401, 'Please define the authorization header')
+            return HttpResponse(json.dumps(response_data), content_type='application/json', status=401)
         else:
             if token['token'] != None:
                 user = auth.get_user_data(token['token'])
@@ -879,11 +896,11 @@ def retrieve_supported_board_list(request):
                     return HttpResponse(json.dumps(response_data), content_type='application/json', status=200)
 
                 else:
-                    response_data = rg.error_response_generator(403, user['error'])
-                    return HttpResponse(json.dumps(response_data), content_type='application/json', status=403)
+                    response_data = rg.error_response_generator(401, user['error'])
+                    return HttpResponse(json.dumps(response_data), content_type='application/json', status=401)
             else:
-                response_data = rg.error_response_generator(403, token['error'])
-                return HttpResponse(json.dumps(response_data), content_type="application/json", status=403)
+                response_data = rg.error_response_generator(401, token['error'])
+                return HttpResponse(json.dumps(response_data), content_type="application/json", status=401)
     else:
         response_data = rg.error_response_generator(400, 'Bad request method')
         return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
