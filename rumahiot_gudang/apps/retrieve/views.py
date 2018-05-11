@@ -14,6 +14,90 @@ from calendar import monthrange
 
 # Create your views here.
 
+# Retrieve board pin mapping for specified sensor
+# Using get because we need url parameter
+def retrieve_board_pin_options(request):
+    # Gudang class
+    rg = ResponseGenerator()
+    requtils = RequestUtils()
+    auth = GudangSidikModule()
+    db = GudangMongoDB()
+    gutils = GudangUtils()
+
+    if request.method == 'GET':
+        supported_board_uuid = request.GET.get('board_uuid', '')
+        master_sensor_reference_uuid = request.GET.get('sensor_uuid', '')
+
+        # Make sure both parameter exist and contain value
+        if supported_board_uuid != '' and supported_board_uuid and master_sensor_reference_uuid != '' and master_sensor_reference_uuid:
+            try:
+                token = requtils.get_access_token(request)
+            except KeyError:
+                response_data = rg.error_response_generator(401, "Please define the authorization header")
+                return HttpResponse(json.dumps(response_data), content_type="application/json", status=401)
+            else:
+                if token['token'] != None:
+                    user = auth.get_user_data(token['token'])
+                    if user['user_uuid'] != None:
+                        board = db.get_supported_board_by_uuid(board_uuid=supported_board_uuid)
+                        if board != None:
+                            sensor = db.get_master_sensor_reference_by_uuid(master_sensor_reference_uuid=master_sensor_reference_uuid)
+                            if sensor != None:
+                                # Main payload for the response
+                                data = {
+                                    'supported_board_uuid': supported_board_uuid,
+                                    'master_sensor_reference_uuid': master_sensor_reference_uuid,
+                                    'pin_mapping': []
+                                }
+
+                                # Iterate through the pin
+                                for sensor_pin_mapping in sensor['sensor_pin_mappings']:
+                                    pin_option = {
+                                        'sensor_pin': sensor_pin_mapping['pin'],
+                                        'mapping_options': []
+                                    }
+                                    # Iterate through the function
+                                    for function in sensor_pin_mapping['function']:
+                                        # Iterate through board pin mapping
+                                        for board_pin in board['board_pins']:
+                                            if function in board_pin['functions']:
+                                                # Redundant sensor_pin parameter so it can be used easier by front end
+                                                mapping_option = {
+                                                    'sensor_pin': sensor_pin_mapping['pin'],
+                                                    'device_pin': board_pin['pin'],
+                                                    'device_arduino_pin': board_pin['arduino_pin'],
+                                                    'device_pin_name': board_pin['name'],
+                                                    'function': function
+                                                }
+                                                # Append it into mapping option
+                                                pin_option['mapping_options'].append(mapping_option)
+                                    # Append it into pin mapping
+                                    data['pin_mapping'].append(pin_option)
+                                response_data = rg.data_response_generator(data)
+                                return HttpResponse(json.dumps(response_data), content_type="application/json", status=200)
+
+                            else:
+                                response_data = rg.error_response_generator(400, "Invalid master sensor reference uuid")
+                                return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
+                        else:
+                            response_data = rg.error_response_generator(400, "Invalid supported board uuid")
+                            return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
+                    else:
+                        response_data = rg.error_response_generator(401, user['error'])
+                        return HttpResponse(json.dumps(response_data), content_type="application/json", status=401)
+                else:
+                    response_data = rg.error_response_generator(401, token['error'])
+                    return HttpResponse(json.dumps(response_data), content_type="application/json", status=401)
+
+        else:
+            response_data = rg.error_response_generator(400, 'Invalid get parameter value')
+            return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
+
+    else:
+        response_data = rg.error_response_generator(400, 'Bad request method')
+        return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
+
+
 # Retrieve corresponding user device list
 # Using GET because we need url parameter
 def retrieve_device_list(request):
