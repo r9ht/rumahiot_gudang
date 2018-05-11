@@ -54,6 +54,7 @@ def retrieve_board_pin_options(request):
                                 for sensor_pin_mapping in sensor['sensor_pin_mappings']:
                                     pin_option = {
                                         'sensor_pin': sensor_pin_mapping['pin'],
+                                        'sensor_pin_name': sensor_pin_mapping['pin_name'],
                                         'mapping_options': []
                                     }
                                     # Iterate through the function
@@ -96,7 +97,6 @@ def retrieve_board_pin_options(request):
     else:
         response_data = rg.error_response_generator(400, 'Bad request method')
         return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
-
 
 # Retrieve corresponding user device list
 # Using GET because we need url parameter
@@ -923,6 +923,8 @@ def retrieve_master_sensor_reference_list(request):
 
                         # Remove uuid mapping
                         master_sensor_reference.pop('master_sensor_uuids')
+                        # Remove pin mapping
+                        master_sensor_reference.pop('sensor_pin_mappings')
                         master_sensor_reference['sensor_value_type'] = sensor_value_type
 
                         data['master_sensor_references'].append(master_sensor_reference)
@@ -973,6 +975,8 @@ def retrieve_supported_board_list(request):
                     for supported_board in supported_boards:
                         # Pop the id
                         supported_board.pop('_id')
+                        # Pop the pin mapping
+                        supported_board.pop('board_pins')
                         data['supported_boards'].append(supported_board)
 
                     # Generate response object
