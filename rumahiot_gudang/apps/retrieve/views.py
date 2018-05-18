@@ -1,6 +1,7 @@
 import json
 import datetime
 import timeit
+from uuid import uuid4
 
 
 from django.shortcuts import HttpResponse
@@ -27,7 +28,6 @@ def retrieve_board_pin_options(request):
     if request.method == 'GET':
         supported_board_uuid = request.GET.get('board_uuid', '')
         master_sensor_reference_uuid = request.GET.get('sensor_uuid', '')
-
         # Make sure both parameter exist and contain value
         if supported_board_uuid != '' and supported_board_uuid and master_sensor_reference_uuid != '' and master_sensor_reference_uuid:
             try:
@@ -47,6 +47,7 @@ def retrieve_board_pin_options(request):
                                 data = {
                                     'supported_board_uuid': supported_board_uuid,
                                     'master_sensor_reference_uuid': master_sensor_reference_uuid,
+                                    'random_uuid':  uuid4().hex,
                                     'pin_mapping': []
                                 }
 
@@ -60,18 +61,29 @@ def retrieve_board_pin_options(request):
                                     # Iterate through the function
                                     for function in sensor_pin_mapping['function']:
                                         # Iterate through board pin mapping
-                                        for board_pin in board['board_pins']:
-                                            if function in board_pin['functions']:
-                                                # Redundant sensor_pin parameter so it can be used easier by front end
-                                                mapping_option = {
-                                                    'sensor_pin': sensor_pin_mapping['pin'],
-                                                    'device_pin': board_pin['pin'],
-                                                    'device_arduino_pin': board_pin['arduino_pin'],
-                                                    'device_pin_name': board_pin['name'],
-                                                    'function': function
-                                                }
-                                                # Append it into mapping option
-                                                pin_option['mapping_options'].append(mapping_option)
+                                        if function == 'NC':
+                                            mapping_option = {
+                                                'sensor_pin': sensor_pin_mapping['pin'],
+                                                'device_pin': 'NC',
+                                                'device_arduino_pin': 'NC',
+                                                'device_pin_name': 'NC',
+                                                'function': function
+                                            }
+                                            # Append it into mapping option
+                                            pin_option['mapping_options'].append(mapping_option)
+                                        else:
+                                            for board_pin in board['board_pins']:
+                                                if function in board_pin['functions']:
+                                                    # Redundant sensor_pin parameter so it can be used easier by front end
+                                                    mapping_option = {
+                                                        'sensor_pin': sensor_pin_mapping['pin'],
+                                                        'device_pin': board_pin['pin'],
+                                                        'device_arduino_pin': board_pin['arduino_pin'],
+                                                        'device_pin_name': board_pin['name'],
+                                                        'function': function
+                                                    }
+                                                    # Append it into mapping option
+                                                    pin_option['mapping_options'].append(mapping_option)
                                     # Append it into pin mapping
                                     data['pin_mapping'].append(pin_option)
                                 response_data = rg.data_response_generator(data)

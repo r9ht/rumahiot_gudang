@@ -6,6 +6,25 @@ import multiprocessing
 
 class GudangUtils:
 
+    # Check if submitted string length matched the submitted value
+    # Return : boolean
+    def string_length_checker(self, target_string, length):
+        if len(target_string) <= length :
+            return True
+        else:
+            return False
+
+    # Check for device_data_sending_interval value
+    # Todo : Check the interval from db instead of hardcoded it in
+    def check_data_sending_interval_value(self, interval):
+        if type(interval) is int:
+            if (interval < 1440 and interval > 5):
+                return True
+            else:
+                return False
+        else:
+            return False
+
     # Check if value type is int or float
     def float_int_check(self, value):
         if type(value) == float or type(value) == int:

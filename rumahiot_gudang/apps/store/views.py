@@ -205,156 +205,166 @@ def store_new_device(request):
                         response_data = rg.error_response_generator(400, 'Malformed JSON')
                         return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
                     else:
-                        # Check device wifi connection
-                        user_wifi_connection = db.get_user_wifi_connection_by_uuid(user_uuid=user['user_uuid'], user_wifi_connection_uuid=new_device.user_wifi_connection_uuid)
-                        if user_wifi_connection != None:
-                            # Verify location structure
-                            try:
-                                position = DevicePositionResource(**new_device.position)
-                            except TypeError:
-                                response_data = rg.error_response_generator(400, 'One of the request inputs is not valid')
-                                return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
-                            except ValueError:
-                                response_data = rg.error_response_generator(400, 'Malformed JSON')
-                                return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
+                        if (gutils.string_length_checker(new_device.location_text, 128) and gutils.string_length_checker(new_device.device_name, 32) and gutils.check_data_sending_interval_value(new_device.device_data_sending_interval)) :
+                            # Check device wifi connection
+                            user_wifi_connection = db.get_user_wifi_connection_by_uuid(user_uuid=user['user_uuid'], user_wifi_connection_uuid=new_device.user_wifi_connection_uuid)
+                            if user_wifi_connection != None:
+                                # Verify location structure
+                                try:
+                                    position = DevicePositionResource(**new_device.position)
+                                except TypeError:
+                                    response_data = rg.error_response_generator(400, 'One of the request inputs is not valid')
+                                    return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
+                                except ValueError:
+                                    response_data = rg.error_response_generator(400, 'Malformed JSON')
+                                    return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
 
-                            else:
-                                # Make sure lat and lng is float
-                                if gutils.float_int_check(position.lat) and gutils.float_int_check(position.lng):
-                                    # Check supported board uuid
-                                    supported_board = db.get_supported_board_by_uuid(board_uuid=new_device.supported_board_uuid)
-                                    if supported_board != None:
-                                        # Check user_sensor structure and validity
-                                        # Make the copy for board pin structure checking
-                                        supported_board_copy = copy.deepcopy(supported_board)
-                                        # total sensor pin ( Do not count NC pin)
-                                        sensor_pin_total = 0
-                                        for added_sensor in new_device.added_sensors:
-                                            try:
-                                                sensor = AddedSensorResource(**added_sensor)
-                                            except TypeError:
-                                                response_data = rg.error_response_generator(400, 'One of the request inputs is not valid')
-                                                return HttpResponse(json.dumps(response_data),
-                                                                    content_type='application/json', status=400)
-                                            except ValueError:
-                                                response_data = rg.error_response_generator(400, 'Malformed JSON')
-                                                return HttpResponse(json.dumps(response_data),
-                                                                    content_type='application/json', status=400)
-                                            else:
-                                                # Check master reference sensor
-                                                master_sensor_reference = db.get_master_sensor_reference_by_uuid(master_sensor_reference_uuid=sensor.master_sensor_reference_uuid)
-                                                if master_sensor_reference != None:
-                                                    # Check pin mapping structure ( data validity will be checked in different function)
-                                                    for pin_mapping in sensor.sensor_pin_mappings:
-                                                        try:
-                                                            pin = SensorPinMappingResource(**pin_mapping)
-                                                        except TypeError:
-                                                            response_data = rg.error_response_generator(400, 'One of the request inputs is not valid')
-                                                            return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
-                                                        except ValueError:
-                                                            response_data = rg.error_response_generator(400, 'Malformed JSON')
-                                                            return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
-                                                        else:
-                                                            # Count total sensor pin ( NC pin should not be count)
-                                                            if pin.device_pin == "NC" and pin.device_pin_name == "NC" and pin.function == "NC":
-                                                                pass
-                                                            else:
-                                                                sensor_pin_total += 1
-
-                                                    # Match the submitted pin configuration with master sensor configuration
-                                                    if not gutils.validate_sensor_pin_mapping(
-                                                            added_sensor_pin_mappings=added_sensor['sensor_pin_mappings'],
-                                                            master_sensor_reference_pin_mappings=master_sensor_reference['sensor_pin_mappings']):
-                                                        response_data = rg.error_response_generator(400, 'Invalid sensor pin structure')
-                                                        return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
+                                else:
+                                    # Make sure lat and lng is float
+                                    if gutils.float_int_check(position.lat) and gutils.float_int_check(position.lng):
+                                        # Check supported board uuid
+                                        supported_board = db.get_supported_board_by_uuid(board_uuid=new_device.supported_board_uuid)
+                                        if supported_board != None:
+                                            # Check user_sensor structure and validity
+                                            # Make the copy for board pin structure checking
+                                            supported_board_copy = copy.deepcopy(supported_board)
+                                            # total sensor pin ( Do not count NC pin)
+                                            sensor_pin_total = 0
+                                            for added_sensor in new_device.added_sensors:
+                                                try:
+                                                    sensor = AddedSensorResource(**added_sensor)
+                                                except TypeError:
+                                                    response_data = rg.error_response_generator(400, 'One of the request inputs is not valid')
+                                                    return HttpResponse(json.dumps(response_data),
+                                                                        content_type='application/json', status=400)
+                                                except ValueError:
+                                                    response_data = rg.error_response_generator(400, 'Malformed JSON')
+                                                    return HttpResponse(json.dumps(response_data),
+                                                                        content_type='application/json', status=400)
                                                 else:
-                                                    response_data = rg.error_response_generator(400, 'Invalid master sensor reference uuid')
+                                                    if (gutils.string_length_checker(sensor.added_sensor_name, 32)) :
+                                                        # Check master reference sensor
+                                                        master_sensor_reference = db.get_master_sensor_reference_by_uuid(master_sensor_reference_uuid=sensor.master_sensor_reference_uuid)
+                                                        if master_sensor_reference != None:
+                                                            # Check pin mapping structure ( data validity will be checked in different function)
+                                                            for pin_mapping in sensor.sensor_pin_mappings:
+                                                                try:
+                                                                    pin = SensorPinMappingResource(**pin_mapping)
+                                                                except TypeError:
+                                                                    response_data = rg.error_response_generator(400, 'One of the request inputs is not valid')
+                                                                    return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
+                                                                except ValueError:
+                                                                    response_data = rg.error_response_generator(400, 'Malformed JSON')
+                                                                    return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
+                                                                else:
+                                                                    # Count total sensor pin ( NC pin should not be count)
+                                                                    if pin.device_pin == "NC" and pin.device_pin_name == "NC" and pin.function == "NC":
+                                                                        pass
+                                                                    else:
+                                                                        sensor_pin_total += 1
+
+                                                            # Match the submitted pin configuration with master sensor configuration
+                                                            if not gutils.validate_sensor_pin_mapping(
+                                                                    added_sensor_pin_mappings=added_sensor['sensor_pin_mappings'],
+                                                                    master_sensor_reference_pin_mappings=master_sensor_reference['sensor_pin_mappings']):
+                                                                response_data = rg.error_response_generator(400, 'Invalid sensor pin structure')
+                                                                return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
+                                                        else:
+                                                            response_data = rg.error_response_generator(400, 'Invalid master sensor reference uuid')
+                                                            return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
+                                                    else:
+                                                        response_data = rg.error_response_generator(400, 'Invalid added sensor string length')
+                                                        return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
+
+
+                                                # Validate the pin configuration
+                                                if not gutils.validate_board_pin_mapping(added_sensor_pin_mappings=added_sensor['sensor_pin_mappings'],
+                                                                                         supported_board_pin_mappings=supported_board_copy['board_pins']):
+                                                    response_data = rg.error_response_generator(400, 'Invalid sensor pin structure')
                                                     return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
 
-                                            # Validate the pin configuration
-                                            if not gutils.validate_board_pin_mapping(added_sensor_pin_mappings=added_sensor['sensor_pin_mappings'],
-                                                                                     supported_board_pin_mappings=supported_board_copy['board_pins']):
-                                                response_data = rg.error_response_generator(400, 'Invalid sensor pin structure')
-                                                return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
+                                            # Check if the resulting structure mutation is correct
+                                            if (len(supported_board['board_pins']) == len(supported_board_copy['board_pins']) + sensor_pin_total):
 
-                                        # Check if the resulting structure mutation is correct
-                                        if (len(supported_board['board_pins']) == len(supported_board_copy['board_pins']) + sensor_pin_total):
+                                                # THE DATA THAT ENTER THIS STATE SHOULD BE FULLY VERIFIED AND NORMALIZED
+                                                ########################################################################
 
-                                            # THE DATA THAT ENTER THIS STATE SHOULD BE FULLY VERIFIED AND NORMALIZED
-                                            ########################################################################
+                                                user_sensor_uuids = []
 
-                                            user_sensor_uuids = []
+                                                # For each added sensor
+                                                for added_sensor in new_device.added_sensors:
+                                                    # Make user_sensor mapping
+                                                    new_user_sensor_mapping = {
+                                                        'user_sensor_mapping_uuid': uuid4().hex,
+                                                        'time_added': float(datetime.now().timestamp()),
+                                                        'sensor_pin_mappings': added_sensor['sensor_pin_mappings']
+                                                    }
 
-                                            # For each added sensor
-                                            for added_sensor in new_device.added_sensors:
-                                                # Make user_sensor mapping
-                                                new_user_sensor_mapping = {
-                                                    'user_sensor_mapping_uuid': uuid4().hex,
+                                                    # Write into db
+                                                    db.put_user_sensor_mapping(user_sensor_mapping=new_user_sensor_mapping)
+
+                                                    # Get master sensor reference
+                                                    # Threshold defaulting to disabled when new device is added
+                                                    master_sensor_reference = db.get_master_sensor_reference_by_uuid(master_sensor_reference_uuid=added_sensor['master_sensor_reference_uuid'])
+                                                    for master_sensor_uuid in master_sensor_reference['master_sensor_uuids']:
+                                                        master_sensor = db.get_master_sensor_by_uuid(master_sensor_uuid=master_sensor_uuid)
+                                                        new_user_sensor = {
+                                                            'user_uuid': user['user_uuid'],
+                                                            'user_sensor_uuid': uuid4().hex,
+                                                            'user_sensor_name': '{} {}'.format(added_sensor['added_sensor_name'], master_sensor['master_sensor_name']),
+                                                            'master_sensor_uuid': master_sensor_uuid,
+                                                            'sensor_threshold': float(0),
+                                                            'currently_over_threshold': False,
+                                                            'threshold_direction': '1',
+                                                            'threshold_enabled': False,
+                                                            'user_sensor_mapping_uuid': new_user_sensor_mapping['user_sensor_mapping_uuid']
+                                                        }
+                                                        # Write into db
+                                                        db.put_user_sensor(user_sensor=new_user_sensor)
+                                                        user_sensor_uuids.append(new_user_sensor['user_sensor_uuid'])
+
+                                                # User device structure
+                                                user_device = {
+                                                    'supported_board_uuid': new_device.supported_board_uuid,
+                                                    'user_sensor_uuids': user_sensor_uuids,
+                                                    'device_uuid': uuid4().hex,
+                                                    'position': {
+                                                        'lat': float(position.lat),
+                                                        'lng': float(position.lng)
+                                                    },
+                                                    'location_text': new_device.location_text,
+                                                    'read_key': uuid4().hex,
                                                     'time_added': float(datetime.now().timestamp()),
-                                                    'sensor_pin_mappings': added_sensor['sensor_pin_mappings']
+                                                    'user_uuid': user['user_uuid'],
+                                                    'write_key': uuid4().hex,
+                                                    'device_name': new_device.device_name,
+                                                    'user_wifi_connection_uuid': new_device.user_wifi_connection_uuid,
+                                                    'device_data_sending_interval': new_device.device_data_sending_interval
                                                 }
 
                                                 # Write into db
-                                                db.put_user_sensor_mapping(user_sensor_mapping=new_user_sensor_mapping)
+                                                db.put_user_device(user_device=user_device)
 
-                                                # Get master sensor reference
-                                                # Threshold defaulting to disabled when new device is added
-                                                master_sensor_reference = db.get_master_sensor_reference_by_uuid(master_sensor_reference_uuid=added_sensor['master_sensor_reference_uuid'])
-                                                for master_sensor_uuid in master_sensor_reference['master_sensor_uuids']:
-                                                    master_sensor = db.get_master_sensor_by_uuid(master_sensor_uuid=master_sensor_uuid)
-                                                    new_user_sensor = {
-                                                        'user_uuid': user['user_uuid'],
-                                                        'user_sensor_uuid': uuid4().hex,
-                                                        'user_sensor_name': '{} {}'.format(added_sensor['added_sensor_name'], master_sensor['master_sensor_name']),
-                                                        'master_sensor_uuid': master_sensor_uuid,
-                                                        'sensor_threshold': float(0),
-                                                        'currently_over_threshold': False,
-                                                        'threshold_direction': '1',
-                                                        'threshold_enabled': False,
-                                                        'user_sensor_mapping_uuid': new_user_sensor_mapping['user_sensor_mapping_uuid']
-                                                    }
-                                                    # Write into db
-                                                    db.put_user_sensor(user_sensor=new_user_sensor)
-                                                    user_sensor_uuids.append(new_user_sensor['user_sensor_uuid'])
+                                                # Device successfully added
+                                                response_data = rg.success_response_generator(200, "New device successfully added")
+                                                return HttpResponse(json.dumps(response_data), content_type="application/json", status=200)
 
-                                            # User device structure
-                                            user_device = {
-                                                'supported_board_uuid': new_device.supported_board_uuid,
-                                                'user_sensor_uuids': user_sensor_uuids,
-                                                'device_uuid': uuid4().hex,
-                                                'position': {
-                                                    'lat': float(position.lat),
-                                                    'lng': float(position.lng)
-                                                },
-                                                'location_text': new_device.location_text,
-                                                'read_key': uuid4().hex,
-                                                'time_added': float(datetime.now().timestamp()),
-                                                'user_uuid': user['user_uuid'],
-                                                'write_key': uuid4().hex,
-                                                'device_name': new_device.device_name,
-                                                'user_wifi_connection_uuid': new_device.user_wifi_connection_uuid
-                                            }
-
-                                            # Write into db
-                                            db.put_user_device(user_device=user_device)
-
-                                            # Device successfully added
-                                            response_data = rg.success_response_generator(200, "New device successfully added")
-                                            return HttpResponse(json.dumps(response_data), content_type="application/json", status=200)
-
+                                            else:
+                                                response_data = rg.error_response_generator(400, 'Invalid board pin structure')
+                                                return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
                                         else:
-                                            response_data = rg.error_response_generator(400, 'Invalid board pin structure')
-                                            return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
+                                            response_data = rg.error_response_generator(400, 'Invalid supported board uuid')
+                                            return HttpResponse(json.dumps(response_data), content_type='application/json',
+                                                                status=400)
                                     else:
-                                        response_data = rg.error_response_generator(400, 'Invalid supported board uuid')
+                                        response_data = rg.error_response_generator(400, 'Invalid position coordinate data type')
                                         return HttpResponse(json.dumps(response_data), content_type='application/json',
                                                             status=400)
-                                else:
-                                    response_data = rg.error_response_generator(400, 'Invalid position coordinate data type')
-                                    return HttpResponse(json.dumps(response_data), content_type='application/json',
-                                                        status=400)
+                            else:
+                                response_data = rg.error_response_generator(400, 'invalid user wifi connection uuid')
+                                return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
                         else:
-                            response_data = rg.error_response_generator(400, 'invalid user wifi connection uuid')
+                            response_data = rg.error_response_generator(400, 'Invalid added device string length')
                             return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
                 else:
                     response_data = rg.error_response_generator(401, user['error'])

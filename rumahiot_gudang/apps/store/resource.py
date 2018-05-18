@@ -15,13 +15,14 @@ class DeviceDataResource(object):
 # Store new device resource
 class NewDeviceResource(object):
     def __init__(self, position, location_text, device_name, supported_board_uuid,
-                 added_sensors, user_wifi_connection_uuid):
+                 added_sensors, user_wifi_connection_uuid, device_data_sending_interval):
         self.position = position
         self.location_text = location_text
         self.device_name = device_name
         self.supported_board_uuid = supported_board_uuid
         self.added_sensors = added_sensors
         self.user_wifi_connection_uuid = user_wifi_connection_uuid
+        self.device_data_sending_interval = device_data_sending_interval
 
 # Device position resource
 class DevicePositionResource(object):
