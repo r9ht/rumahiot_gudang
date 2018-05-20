@@ -311,7 +311,7 @@ def store_new_device(request):
                                                         new_user_sensor = {
                                                             'user_uuid': user['user_uuid'],
                                                             'user_sensor_uuid': uuid4().hex,
-                                                            'user_sensor_name': '{} {}'.format(added_sensor['added_sensor_name'], master_sensor['master_sensor_name']),
+                                                            'user_sensor_name': added_sensor['added_sensor_name'],
                                                             'master_sensor_uuid': master_sensor_uuid,
                                                             'sensor_threshold': float(0),
                                                             'currently_over_threshold': False,

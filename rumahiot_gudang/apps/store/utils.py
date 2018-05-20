@@ -1,10 +1,23 @@
 from rumahiot_gudang.apps.store.mongodb import GudangMongoDB
 from rumahiot_gudang.apps.sidik_module.authentication import GudangSidikModule
 from datetime import datetime
+import random
 from rumahiot_gudang.apps.surat_module.send_email import send_device_android_notification_worker, send_device_notification_email_worker
 import multiprocessing
 
 class GudangUtils:
+
+    # Get n random material color in list format
+    def get_n_random_material_color(self, n):
+        db = GudangMongoDB()
+        color_list = []
+        db_color_list = list(db.get_material_color_document().values())
+
+        for i in range(0, n):
+            rand_int = random.randint(0, len(db_color_list)-1)
+            color_list.append(db_color_list[rand_int])
+
+        return color_list
 
     # Check if submitted string length matched the submitted value
     # Return : boolean
@@ -18,7 +31,7 @@ class GudangUtils:
     # Todo : Check the interval from db instead of hardcoded it in
     def check_data_sending_interval_value(self, interval):
         if type(interval) is int:
-            if (interval < 1440 and interval > 5):
+            if (interval <= 1440 and interval >= 5):
                 return True
             else:
                 return False

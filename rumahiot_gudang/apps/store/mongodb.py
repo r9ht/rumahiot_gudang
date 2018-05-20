@@ -12,7 +12,9 @@ from rumahiot_gudang.settings import RUMAHIOT_GUDANG_MONGO_HOST, \
     RUMAHIOT_GUDANG_SUPPORTED_BOARD_COLLECTION, \
     RUMAHIOT_GUDANG_MASTER_SENSOR_REFERENCES_COLLECTION, \
     RUMAHIOT_GUDANG_USER_SENSOR_MAPPINGS_COLLECTIONS, \
-    RUMAHIOT_GUDANG_USER_WIFI_CONNECTIONS_COLLECTION
+    RUMAHIOT_GUDANG_USER_WIFI_CONNECTIONS_COLLECTION, \
+    MATERIAL_COLORS_COLLECTION
+
 from bson.json_util import dumps
 import json, datetime
 
@@ -25,6 +27,29 @@ class GudangMongoDB:
                                   username=RUMAHIOT_GUDANG_MONGO_USERNAME,
                                   password=RUMAHIOT_GUDANG_MONGO_PASSWORD,
                                   )
+
+    # get device data count by device uuid
+    def get_device_data_count_by_uuid(self, device_uuid):
+        db = self.client[RUMAHIOT_GUDANG_DATABASE]
+        col = db[RUMAHIOT_GUDANG_DEVICE_DATA_COLLECTION]
+        return col.find({
+            'device_uuid': device_uuid
+        }).count(True)
+
+    # Get user device by user_uuid
+    def get_user_device_list_by_user_uuid(self, user_uuid):
+        db = self.client[RUMAHIOT_GUDANG_DATABASE]
+        col = db[RUMAHIOT_GUDANG_USERS_DEVICE_COLLECTION]
+        return col.find({
+            'user_uuid': user_uuid
+        })
+
+    # Get material color document from db
+    def get_material_color_document(self):
+        db = self.client[RUMAHIOT_GUDANG_DATABASE]
+        col = db[MATERIAL_COLORS_COLLECTION]
+        # Dont forget to pop the id
+        return col.find_one().pop('_id')
 
     # Put data into specified database and collection
     # input parameter : database(string), collection(string), data(dictionary)

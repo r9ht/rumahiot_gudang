@@ -679,7 +679,7 @@ def retrieve_device_data_statistic_monthly(request):
                                         # Append all result into main data
                                         data['device_data_statistics'].append(device_data_statistic)
 
-                                    # Finsih time
+                                    # Finish time
                                     data['time_to_generate'] = timeit.default_timer() - start_time
                                     # Generate response object
                                     response_data = rg.data_response_generator(data)
@@ -956,6 +956,7 @@ def retrieve_master_sensor_reference_list(request):
         return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
 
 def retrieve_supported_board_list(request):
+
     # Gudang class
     rg = ResponseGenerator()
     requtils = RequestUtils()
@@ -994,6 +995,62 @@ def retrieve_supported_board_list(request):
                     # Generate response object
                     response_data = rg.data_response_generator(data)
                     return HttpResponse(json.dumps(response_data), content_type='application/json', status=200)
+
+                else:
+                    response_data = rg.error_response_generator(401, user['error'])
+                    return HttpResponse(json.dumps(response_data), content_type='application/json', status=401)
+            else:
+                response_data = rg.error_response_generator(401, token['error'])
+                return HttpResponse(json.dumps(response_data), content_type="application/json", status=401)
+    else:
+        response_data = rg.error_response_generator(400, 'Bad request method')
+        return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
+
+def retrieve_device_data_count_chart(request):
+    # Start time
+    start_time = timeit.default_timer()
+
+    # Gudang class
+    rg = ResponseGenerator()
+    requtils = RequestUtils()
+    auth = GudangSidikModule()
+    db = GudangMongoDB()
+    gutils = GudangUtils()
+
+    if request.method == 'GET':
+        # Check the token
+        try:
+            token = requtils.get_access_token(request)
+        except KeyError:
+            response_data = rg.error_response_generator(401, 'Please define the authorization header')
+            return HttpResponse(json.dumps(response_data), content_type='application/json', status=401)
+        else:
+            if token['token'] != None:
+                user = auth.get_user_data(token['token'])
+                # Check token validity
+                if user['user_uuid'] != None:
+
+                    # Device name list
+                    device_names = []
+                    # Data count list
+                    data_count = []
+                    user_devices = db.get_user_device_list_by_user_uuid(user_uuid=user['user_uuid'])
+
+                    for user_device in user_devices:
+                        device_names.append(user_device['device_name'])
+                        data_count.append(db.get_device_data_count_by_uuid(device_uuid=user_device['device_uuid']))
+
+                    data = {
+                        'device_names': device_names,
+                        'data_counts': data_count,
+                        'background_colors': gutils.get_n_random_material_color(user_devices.count(True))
+                    }
+                    # Finish time
+                    data['time_to_generate'] = timeit.default_timer() - start_time
+
+                    # Generate response object
+                    response_data = rg.data_response_generator(data)
+                    return HttpResponse(json.dumps(response_data), content_type="application/json", status=200)
 
                 else:
                     response_data = rg.error_response_generator(401, user['error'])
