@@ -503,12 +503,16 @@ def retrieve_device_data_statistic(request):
                                         data = {
                                             'device_uuid': device['device_uuid'],
                                             'total_user_sensor': len(device['user_sensor_uuids']),
-                                            'user_sensor_uuids': device['user_sensor_uuids'],
                                             'device_data_statistics' : [],
                                             'time_generated': float(datetime.datetime.now().timestamp())
                                         }
                                         # Iterate between the user_sensor_uuid in the device
                                         for user_sensor_uuid in device['user_sensor_uuids'] :
+                                            # Get the sensor data
+                                            user_sensor = db.get_user_sensor_by_uuid(user_sensor_uuid=user_sensor_uuid)
+                                            # Get master sensor
+                                            master_sensor = db.get_master_sensor_by_uuid(master_sensor_uuid=user_sensor['master_sensor_uuid'])
+
                                             # Reinitialize the data
                                             time_range = time_delta / divider
                                             current_pointer = from_time_datetime
@@ -516,8 +520,11 @@ def retrieve_device_data_statistic(request):
                                             # Iteration count depends on divider value
 
                                             device_data_statistic = {
-                                                'user_sensor_uuid' : user_sensor_uuid,
-                                                'statistic_values' : []
+                                                'user_sensor_uuid': user_sensor_uuid,
+                                                'user_sensor_name': user_sensor['user_sensor_name'],
+                                                'unit_name': master_sensor['master_sensor_name'],
+                                                'unit_symbol': master_sensor['master_sensor_default_unit_symbol'],
+                                                'statistic_values': []
                                             }
                                             # Iterate between the time range
                                             # Number of the iteration depends on divider value
@@ -631,7 +638,6 @@ def retrieve_device_data_statistic_monthly(request):
                                     data = {
                                         'device_uuid': device['device_uuid'],
                                         'total_user_sensor': len(device['user_sensor_uuids']),
-                                        'user_sensor_uuids': device['user_sensor_uuids'],
                                         'device_data_statistics': [],
                                         'month': str(month),
                                         'year': str(year),
@@ -640,8 +646,16 @@ def retrieve_device_data_statistic_monthly(request):
                                     }
 
                                     for user_sensor_uuid in device['user_sensor_uuids']:
+                                        # Get the sensor data
+                                        user_sensor = db.get_user_sensor_by_uuid(user_sensor_uuid=user_sensor_uuid)
+                                        # Get master sensor
+                                        master_sensor = db.get_master_sensor_by_uuid(master_sensor_uuid=user_sensor['master_sensor_uuid'])
+
                                         device_data_statistic = {
                                             'user_sensor_uuid': user_sensor_uuid,
+                                            'user_sensor_name': user_sensor['user_sensor_name'],
+                                            'unit_name': master_sensor['master_sensor_name'],
+                                            'unit_symbol': master_sensor['master_sensor_default_unit_symbol'],
                                             'statistic_values': []
                                         }
                                         # Iterate through the whole month
@@ -746,15 +760,22 @@ def retrieve_device_device_data_statistic_yearly(request):
                                     data = {
                                         'device_uuid': device['device_uuid'],
                                         'total_user_sensor': len(device['user_sensor_uuids']),
-                                        'user_sensor_uuids': device['user_sensor_uuids'],
                                         'device_data_statistics': [],
                                         'year': str(year),
                                         'time_generated': float(datetime.datetime.now().timestamp())
                                     }
 
                                     for user_sensor_uuid in device['user_sensor_uuids']:
+                                        # Get the sensor data
+                                        user_sensor = db.get_user_sensor_by_uuid(user_sensor_uuid=user_sensor_uuid)
+                                        # Get master sensor
+                                        master_sensor = db.get_master_sensor_by_uuid(master_sensor_uuid=user_sensor['master_sensor_uuid'])
+
                                         device_data_statistic = {
                                             'user_sensor_uuid': user_sensor_uuid,
+                                            'user_sensor_name': user_sensor['user_sensor_name'],
+                                            'unit_name': master_sensor['master_sensor_name'],
+                                            'unit_symbol': master_sensor['master_sensor_default_unit_symbol'],
                                             'statistic_values': []
                                         }
                                         # Iterate through the year
@@ -1058,6 +1079,69 @@ def retrieve_device_data_count_chart(request):
             else:
                 response_data = rg.error_response_generator(401, token['error'])
                 return HttpResponse(json.dumps(response_data), content_type="application/json", status=401)
+    else:
+        response_data = rg.error_response_generator(400, 'Bad request method')
+        return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
+
+def retrieve_device_sensor_status_chart(request):
+    # Start time
+    start_time = timeit.default_timer()
+
+    # Gudang class
+    rg = ResponseGenerator()
+    requtils = RequestUtils()
+    auth = GudangSidikModule()
+    db = GudangMongoDB()
+    gutils = GudangUtils()
+
+    if request.method == 'GET':
+        # Check the token
+        try:
+            token = requtils.get_access_token(request)
+        except KeyError:
+            response_data = rg.error_response_generator(401, 'Please define the authorization header')
+            return HttpResponse(json.dumps(response_data), content_type='application/json', status=401)
+        else:
+            if token['token'] != None:
+                user = auth.get_user_data(token['token'])
+                # Check token validity
+                if user['user_uuid'] != None:
+                    user_devices = db.get_user_device_list_by_user_uuid(user_uuid=user['user_uuid'])
+                    # Statuses
+                    warning_status_count = 0
+                    normal_status_count = 0
+                    disabled_status_count = 0
+                    # Iterate through the devices
+                    for user_device in user_devices:
+                        for user_sensor_uuid in user_device['user_sensor_uuids'] :
+                            user_sensor = db.get_user_sensor_by_uuid(user_sensor_uuid=user_sensor_uuid)
+                            if (user_sensor['threshold_enabled']) :
+                                if (user_sensor['currently_over_threshold']) :
+                                    warning_status_count += 1
+                                else:
+                                    normal_status_count += 1
+                            else:
+                                disabled_status_count += 1
+
+                    # Main data structure
+                    data = {
+                        'status_count': {
+                            'normal': normal_status_count,
+                            'warning': warning_status_count,
+                            'disabled': disabled_status_count
+                        },
+                        'time_to_generate': timeit.default_timer() - start_time
+                    }
+                    # Generate response object
+                    response_data = rg.data_response_generator(data)
+                    return HttpResponse(json.dumps(response_data), content_type="application/json", status=200)
+                else:
+                    response_data = rg.error_response_generator(401, user['error'])
+                    return HttpResponse(json.dumps(response_data), content_type='application/json', status=401)
+            else:
+                response_data = rg.error_response_generator(401, token['error'])
+                return HttpResponse(json.dumps(response_data), content_type="application/json", status=401)
+
     else:
         response_data = rg.error_response_generator(400, 'Bad request method')
         return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)

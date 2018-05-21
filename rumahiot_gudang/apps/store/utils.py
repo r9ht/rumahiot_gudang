@@ -11,7 +11,10 @@ class GudangUtils:
     def get_n_random_material_color(self, n):
         db = GudangMongoDB()
         color_list = []
-        db_color_list = list(db.get_material_color_document().values())
+        db_color = db.get_material_color_document()
+        # Pop the object id
+        db_color.pop('_id')
+        db_color_list = list(db_color.values())
 
         for i in range(0, n):
             rand_int = random.randint(0, len(db_color_list)-1)

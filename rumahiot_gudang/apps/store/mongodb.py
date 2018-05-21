@@ -48,8 +48,7 @@ class GudangMongoDB:
     def get_material_color_document(self):
         db = self.client[RUMAHIOT_GUDANG_DATABASE]
         col = db[MATERIAL_COLORS_COLLECTION]
-        # Dont forget to pop the id
-        return col.find_one().pop('_id')
+        return col.find_one()
 
     # Put data into specified database and collection
     # input parameter : database(string), collection(string), data(dictionary)
