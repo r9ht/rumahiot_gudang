@@ -7,14 +7,12 @@ from rumahiot_gudang.apps.retrieve.views import \
     retrieve_device_data_statistic, \
     retrieve_device_data_statistic_monthly, \
     retrieve_device_device_data_statistic_yearly, \
-    retrieve_user_wifi_connection_list, \
     retrieve_master_sensor_reference_list, \
     retrieve_board_pin_options, \
     retrieve_device_data_count_chart, \
     retrieve_device_sensor_status_chart
 
 urlpatterns = [
-    url(r'^user/connection/wifi/list$', retrieve_user_wifi_connection_list, name='retrieve_user_wifi_connection_list'),
     url(r'^device/data$', retrieve_device_data, name='retrieve_device_data'),
     url(r'^device/list$', retrieve_device_list, name='retrieve_device_list'),
     url(r'^device/data/count/chart$', retrieve_device_data_count_chart, name='retrieve_device_data_count_chart'),

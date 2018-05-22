@@ -848,67 +848,6 @@ def retrieve_device_device_data_statistic_yearly(request):
         response_data = rg.error_response_generator(400, "Bad request method")
         return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
 
-def retrieve_user_wifi_connection_list(request):
-    # Gudang class
-    rg = ResponseGenerator()
-    requtils = RequestUtils()
-    auth = GudangSidikModule()
-    db = GudangMongoDB()
-    gutils = GudangUtils()
-
-    if request.method == 'GET':
-        # Check the token
-        try:
-            token = requtils.get_access_token(request)
-        except KeyError:
-            response_data = rg.error_response_generator(401, 'Please define the authorization header')
-            return HttpResponse(json.dumps(response_data), content_type='application/json', status=401)
-        else:
-            if token['token'] != None:
-                user = auth.get_user_data(token['token'])
-                # Check token validity
-                if user['user_uuid'] != None:
-
-                    # Get all conenction detail
-                    wifi_connections = db.get_user_wifi_connection(user_uuid=user['user_uuid'])
-                    data = {
-                        'user_uuid' : user['user_uuid'],
-                        'wifi_connections' : [],
-                        'wifi_connection_count': wifi_connections.count(True)
-                    }
-
-                    # Append to data
-                    for wifi_connection in wifi_connections:
-                        # Security enabled
-                        security_enabled = '0'
-                        if wifi_connection['security_enabled']:
-                            security_enabled = '1'
-
-                        wifi_connection_data = {
-                            'user_wifi_connection_uuid': wifi_connection['user_wifi_connection_uuid'],
-                            'connection_name': wifi_connection['connection_name'],
-                            'ssid': wifi_connection['ssid'],
-                            'security_enabled': security_enabled,
-                            'password': wifi_connection['password'],
-                            'time_updated': wifi_connection['time_updated']
-
-                        }
-                        data['wifi_connections'].append(wifi_connection_data)
-
-                    # Generate response object
-                    response_data = rg.data_response_generator(data)
-                    return HttpResponse(json.dumps(response_data), content_type='application/json', status=200)
-
-                else:
-                    response_data = rg.error_response_generator(401, user['error'])
-                    return HttpResponse(json.dumps(response_data), content_type='application/json', status=401)
-            else:
-                response_data = rg.error_response_generator(401, token['error'])
-                return HttpResponse(json.dumps(response_data), content_type="application/json", status=401)
-    else:
-        response_data = rg.error_response_generator(400, 'Bad request method')
-        return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
-
 def retrieve_master_sensor_reference_list(request):
     # Gudang class
     rg = ResponseGenerator()
