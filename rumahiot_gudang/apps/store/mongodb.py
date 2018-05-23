@@ -12,7 +12,8 @@ from rumahiot_gudang.settings import RUMAHIOT_GUDANG_MONGO_HOST, \
     RUMAHIOT_GUDANG_SUPPORTED_BOARD_COLLECTION, \
     RUMAHIOT_GUDANG_MASTER_SENSOR_REFERENCES_COLLECTION, \
     RUMAHIOT_GUDANG_USER_SENSOR_MAPPINGS_COLLECTIONS, \
-    MATERIAL_COLORS_COLLECTION
+    MATERIAL_COLORS_COLLECTION, \
+    RUMAHIOT_LEMARI_USER_WIFI_CONNECTIONS_COLLECTION
 
 from bson.json_util import dumps
 import json, datetime
@@ -267,5 +268,16 @@ class GudangMongoDB:
         col = db[RUMAHIOT_GUDANG_USER_SENSOR_MAPPINGS_COLLECTIONS]
         result = col.find_one({
             'user_sensor_mapping_uuid': user_sensor_mapping_uuid
+        })
+        return result
+
+    # Get user_wifi_connection using user_wifi_connection_uuid and user_uuid
+    # Input parameter : user_wifi_connection_uuid (string), user_uuid(string)
+    def get_user_wifi_connection_by_uuid(self, user_wifi_connection_uuid, user_uuid):
+        db = self.client[RUMAHIOT_GUDANG_DATABASE]
+        col = db[RUMAHIOT_LEMARI_USER_WIFI_CONNECTIONS_COLLECTION]
+        result = col.find_one({
+            'user_uuid': user_uuid,
+            'user_wifi_connection_uuid': user_wifi_connection_uuid
         })
         return result

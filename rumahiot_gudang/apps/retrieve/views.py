@@ -1084,3 +1084,52 @@ def retrieve_device_sensor_status_chart(request):
     else:
         response_data = rg.error_response_generator(400, 'Bad request method')
         return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
+
+# Retrieve simple device list
+# Only returning device uuid and its name
+def retrieve_simple_device_list(request):
+    # Gudang class
+    rg = ResponseGenerator()
+    requtils = RequestUtils()
+    auth = GudangSidikModule()
+    db = GudangMongoDB()
+    gutils = GudangUtils()
+
+    if request.method == 'GET' :
+        # Check the token
+        try:
+            token = requtils.get_access_token(request)
+        except KeyError:
+            response_data = rg.error_response_generator(401, 'Please define the authorization header')
+            return HttpResponse(json.dumps(response_data), content_type='application/json', status=401)
+        else:
+            if token['token'] != None:
+                user = auth.get_user_data(token['token'])
+                # Check token validity
+                if user['user_uuid'] != None:
+                    user_devices = db.get_user_device_list_by_user_uuid(user_uuid=user['user_uuid'])
+                    data = {
+                        'user_devices': [],
+                        'user_device_count': user_devices.count(True)
+                    }
+
+                    for user_device in user_devices:
+                        user_device_data = {
+                            'device_uuid': user_device['device_uuid'],
+                            'device_name': user_device['device_name']
+                        }
+                        # Append to the main data
+                        data['user_devices'].append(user_device_data)
+
+                    response_data = rg.data_response_generator(data)
+                    return HttpResponse(json.dumps(response_data), content_type="application/json", status=200)
+
+                else:
+                    response_data = rg.error_response_generator(401, user['error'])
+                    return HttpResponse(json.dumps(response_data), content_type='application/json', status=401)
+            else:
+                response_data = rg.error_response_generator(401, token['error'])
+                return HttpResponse(json.dumps(response_data), content_type="application/json", status=401)
+    else:
+        response_data = rg.error_response_generator(400, "Bad request method")
+        return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
