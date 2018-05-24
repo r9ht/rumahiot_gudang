@@ -503,6 +503,8 @@ def retrieve_device_data_statistic(request):
                                         data = {
                                             'device_uuid': device['device_uuid'],
                                             'total_user_sensor': len(device['user_sensor_uuids']),
+                                            # Random colors for being used by client's chart
+                                            'random_material_colors': gutils.get_n_random_material_color(len(device['user_sensor_uuids'])),
                                             'device_data_statistics' : [],
                                             'time_generated': float(datetime.datetime.now().timestamp())
                                         }
@@ -639,6 +641,8 @@ def retrieve_device_data_statistic_monthly(request):
                                         'device_uuid': device['device_uuid'],
                                         'total_user_sensor': len(device['user_sensor_uuids']),
                                         'device_data_statistics': [],
+                                        # Random colors for being used by client's chart
+                                        'random_material_colors': gutils.get_n_random_material_color(len(device['user_sensor_uuids'])),
                                         'month': str(month),
                                         'year': str(year),
                                         'total_days': number_of_day,
@@ -760,6 +764,8 @@ def retrieve_device_device_data_statistic_yearly(request):
                                     data = {
                                         'device_uuid': device['device_uuid'],
                                         'total_user_sensor': len(device['user_sensor_uuids']),
+                                        # Random colors for being used by client's chart
+                                        'random_material_colors': gutils.get_n_random_material_color(len(device['user_sensor_uuids'])),
                                         'device_data_statistics': [],
                                         'year': str(year),
                                         'time_generated': float(datetime.datetime.now().timestamp())
