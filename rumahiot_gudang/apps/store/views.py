@@ -3,8 +3,13 @@ from datetime import datetime
 import copy
 from uuid import uuid4
 
+from pytz import all_timezones
+
 from django.shortcuts import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
+
+from rumahiot_gudang.apps.store.forms import ExportXlsxDeviceDataForm
+from rumahiot_gudang.apps.store.xlsx import buffered_xlsxwriter
 
 from rumahiot_gudang.apps.store.mongodb import GudangMongoDB
 from rumahiot_gudang.apps.store.resource import DeviceDataResource, SensorDataResource, DevicePositionResource, SensorPinMappingResource, AddedSensorResource, NewDeviceResource
@@ -59,6 +64,82 @@ def mock_view(request):
     # result = a.get_user_device_list("5083b3ed6d4341ff9d9a6f4f649f1f31")
     # for a in result:
     #     print(a)
+
+# Handle device data xlsx export
+# Export process gonna be handled asynchronously
+@csrf_exempt
+def store_generated_device_xlsx_data(request):
+    # Gudang Classes
+    rg = ResponseGenerator()
+    db = GudangMongoDB()
+    gutils = GudangUtils()
+    requtils = RequestUtils()
+    auth = GudangSidikModule()
+
+    if request.method == 'POST':
+        try:
+            token = requtils.get_access_token(request)
+        except KeyError:
+            response_data = rg.error_response_generator(401, 'Please define the authorization header')
+            return HttpResponse(json.dumps(response_data), content_type="application/json", status=401)
+        else:
+            if token['token'] != None:
+                user = auth.get_user_data(token['token'])
+                # Check token validity
+                if user['user_uuid'] != None:
+                    form = ExportXlsxDeviceDataForm(request.POST)
+                    if form.is_valid():
+                        if (gutils.float_check(form.cleaned_data['from_time']) and gutils.float_check(form.cleaned_data['to_time'])) :
+                            if(float(form.cleaned_data['from_time']) < float(form.cleaned_data['to_time'])):
+                                # Check for the device
+                                device = db.get_device_data_by_uuid(user_uuid=user['user_uuid'], device_uuid=form.cleaned_data['device_uuid'])
+                                if(device):
+                                    # Check for timezone
+                                    if form.cleaned_data['time_zone'] in all_timezones:
+
+                                        user_exported_xlsx_uuid = uuid4().hex
+                                        date_format = "%d-%m-%Y %H:%M:%S"
+                                        from_time_humanize = gutils.datetime_timezone_converter(datetime.fromtimestamp(float(form.cleaned_data['from_time'])), form.cleaned_data['time_zone']).strftime(date_format)
+                                        to_time_humanize = gutils.datetime_timezone_converter(datetime.fromtimestamp(float(form.cleaned_data['to_time'])), form.cleaned_data['time_zone']).strftime(date_format)
+                                        time_now_humanize = gutils.datetime_timezone_converter(datetime.now(), form.cleaned_data['time_zone']).strftime(date_format)
+                                        document_name = '{} sensor data from {} to {} - generated at {}'.format(device['device_name'], from_time_humanize, to_time_humanize, time_now_humanize)
+                                        # Write reserved object into db
+                                        db.put_user_exported_xlsx(user_uuid=user['user_uuid'], user_exported_xlsx_uuid=user_exported_xlsx_uuid, document_name=document_name)
+
+                                        # Call the async function for generating the sheets
+                                        # Todo : make the query call more efficient, by cutting the validation steps
+                                        buffered_xlsxwriter(device_uuid=form.cleaned_data['device_uuid'], user_uuid=user['user_uuid'], from_time=float(form.cleaned_data['from_time']), to_time=float(form.cleaned_data['to_time']), user_exported_xlsx_uuid=user_exported_xlsx_uuid, time_zone=form.cleaned_data['time_zone'])
+
+                                        # Return the response object
+                                        # Device successfully added
+                                        response_data = rg.success_response_generator(200, "Excel document export successfully queued, you can access the data in x section when it is ready")
+                                        return HttpResponse(json.dumps(response_data), content_type="application/json", status=200)
+
+                                    else:
+                                        response_data = rg.error_response_generator(400, 'Invalid timezone')
+                                        return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
+                                else:
+                                    response_data = rg.error_response_generator(400, 'Invalid device uuid')
+                                    return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
+                            else:
+                                response_data = rg.error_response_generator(400, 'From time must be smaller than to time')
+                                return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
+                        else:
+                            response_data = rg.error_response_generator(400, 'Invalid time data format')
+                            return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
+                    else:
+                        response_data = rg.error_response_generator(400, 'Invalid form parameter submitted')
+                        return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
+                else:
+                    response_data = rg.error_response_generator(401, user['error'])
+                    return HttpResponse(json.dumps(response_data), content_type='application/json', status=401)
+            else:
+                response_data = rg.error_response_generator(401, token['error'])
+                return HttpResponse(json.dumps(response_data), content_type='application/json', status=401)
+
+    else:
+        response_data = rg.error_response_generator(400, 'Bad request method')
+        return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
 
 
 # Handle request sent by device

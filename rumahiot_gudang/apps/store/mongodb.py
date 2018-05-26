@@ -1,4 +1,5 @@
 from pymongo import MongoClient
+from uuid import uuid4
 
 from rumahiot_gudang.settings import RUMAHIOT_GUDANG_MONGO_HOST, \
     RUMAHIOT_GUDANG_MONGO_PASSWORD, \
@@ -13,7 +14,8 @@ from rumahiot_gudang.settings import RUMAHIOT_GUDANG_MONGO_HOST, \
     RUMAHIOT_GUDANG_MASTER_SENSOR_REFERENCES_COLLECTION, \
     RUMAHIOT_GUDANG_USER_SENSOR_MAPPINGS_COLLECTIONS, \
     MATERIAL_COLORS_COLLECTION, \
-    RUMAHIOT_LEMARI_USER_WIFI_CONNECTIONS_COLLECTION
+    RUMAHIOT_LEMARI_USER_WIFI_CONNECTIONS_COLLECTION, \
+    RUMAHIOT_LEMARI_USER_EXPORTED_XLSX_COLLECTION
 
 from bson.json_util import dumps
 import json, datetime
@@ -281,3 +283,50 @@ class GudangMongoDB:
             'user_wifi_connection_uuid': user_wifi_connection_uuid
         })
         return result
+
+    # Get raw device sensor data with the specified interval
+    # Input parameter : device_uuid(string), user_sensor_uuid(string), from_time(float, unix timestamp), to_time(float, unix timestamp)
+    def get_device_sensor_data_interval(self, device_uuid, user_sensor_uuid, from_time, to_time):
+        db = self.client[RUMAHIOT_GUDANG_DATABASE]
+        col = db[RUMAHIOT_GUDANG_DEVICE_DATA_COLLECTION]
+        results = col.aggregate(
+            [  # Unwind the data so the calculation can be done
+                {
+                    '$unwind': '$sensor_datas'
+                },
+                {
+                    '$match': {'$and': [{'time_added': {'$gt': from_time, '$lte': to_time}}, {'device_uuid': device_uuid}, {'sensor_datas.user_sensor_uuid': user_sensor_uuid}]}
+                },
+                {
+                    '$sort': {'time_added': 1}
+                }
+            ]
+        )
+
+        # bson dumps will take empty list as a string
+        return json.loads(dumps(results))
+
+    def get_device_data_by_uuid(self, user_uuid, device_uuid):
+        db = self.client[RUMAHIOT_GUDANG_DATABASE]
+        col = db[RUMAHIOT_GUDANG_USERS_DEVICE_COLLECTION]
+        result = col.find_one({'user_uuid': user_uuid, 'device_uuid': device_uuid})
+        return result
+
+    # Put new user exported xlsx document
+    def put_user_exported_xlsx(self, user_uuid, document_name, user_exported_xlsx_uuid):
+        data = {
+            'user_uuid': user_uuid,
+            'document_name': document_name,
+            'user_exported_xlsx_uuid': user_exported_xlsx_uuid,
+            'document_ready': False,
+            'document_link': '',
+            'time_updated': datetime.datetime.now().timestamp()
+        }
+        self.put_data(database=RUMAHIOT_GUDANG_DATABASE, collection=RUMAHIOT_LEMARI_USER_EXPORTED_XLSX_COLLECTION, data=data)
+
+    # Update user exported xlsx document
+    def update_user_exported_xlsx(self, user_exported_xlsx_uuid, document_link):
+        db = self.client[RUMAHIOT_GUDANG_DATABASE]
+        col = db[RUMAHIOT_LEMARI_USER_EXPORTED_XLSX_COLLECTION]
+        a = col.update_one({'user_exported_xlsx_uuid': user_exported_xlsx_uuid}, {'$set': {'document_ready': True,'document_link': document_link,'time_updated': datetime.datetime.now().timestamp()}})
+

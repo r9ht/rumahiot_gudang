@@ -3,10 +3,18 @@ from rumahiot_gudang.apps.sidik_module.authentication import GudangSidikModule
 from datetime import datetime
 import random
 from rumahiot_gudang.apps.surat_module.send_email import send_device_android_notification_worker, send_device_notification_email_worker
+from pytz import all_timezones, timezone
+
 import multiprocessing
 
 class GudangUtils:
 
+    # Convert datetime object into specified timezone
+    def datetime_timezone_converter(self, datetimeobject, time_zone):
+        if time_zone in all_timezones:
+            return datetimeobject.astimezone(timezone(time_zone))
+        else:
+            return None
     # Get n random material color in list format
     def get_n_random_material_color(self, n):
         db = GudangMongoDB()
@@ -433,11 +441,6 @@ class GudangUtils:
         else:
             return False
 
-
-
-
-
-
 class ResponseGenerator:
     # generate error response in dict format
     def error_response_generator(self, code, message):
@@ -466,7 +469,6 @@ class ResponseGenerator:
             }
         }
         return response
-
 
 class RequestUtils:
     # get access token from authorization header
