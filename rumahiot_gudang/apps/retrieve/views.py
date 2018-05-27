@@ -2,6 +2,7 @@ import json
 import datetime
 import timeit
 from uuid import uuid4
+from pytz import all_timezones
 
 from django.shortcuts import HttpResponse
 
@@ -13,6 +14,39 @@ from calendar import monthrange
 
 
 # Create your views here.
+
+# Retrieve timezone list
+def retrieve_timezone_list(request):
+    # Gudang class
+    rg = ResponseGenerator()
+    requtils = RequestUtils()
+    auth = GudangSidikModule()
+
+    if request.method == 'GET':
+        try:
+            token = requtils.get_access_token(request)
+        except KeyError:
+            response_data = rg.error_response_generator(401, "Please define the authorization header")
+            return HttpResponse(json.dumps(response_data), content_type="application/json", status=401)
+        else:
+            if token['token'] != None:
+                user = auth.get_user_data(token['token'])
+                if user['user_uuid'] != None:
+                    data = {
+                        'all_timezones': all_timezones
+                    }
+                    # return response object
+                    response_data = rg.data_response_generator(data)
+                    return HttpResponse(json.dumps(response_data), content_type="application/json", status=200)
+                else:
+                    response_data = rg.error_response_generator(401, user['error'])
+                    return HttpResponse(json.dumps(response_data), content_type="application/json", status=401)
+            else:
+                response_data = rg.error_response_generator(401, token['error'])
+                return HttpResponse(json.dumps(response_data), content_type="application/json", status=401)
+    else:
+        response_data = rg.error_response_generator(400, 'Bad request method')
+        return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
 
 # Retrieve board pin mapping for specified sensor
 # Using get because we need url parameter

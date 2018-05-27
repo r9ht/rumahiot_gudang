@@ -313,10 +313,12 @@ class GudangMongoDB:
         return result
 
     # Put new user exported xlsx document
-    def put_user_exported_xlsx(self, user_uuid, document_name, user_exported_xlsx_uuid):
+    def put_user_exported_xlsx(self, user_uuid, user_exported_xlsx_uuid, device_uuid, from_time, to_time):
         data = {
             'user_uuid': user_uuid,
-            'document_name': document_name,
+            'device_uuid': device_uuid,
+            'from_time': float(from_time),
+            'to_time': float(to_time),
             'user_exported_xlsx_uuid': user_exported_xlsx_uuid,
             'document_ready': False,
             'document_link': '',
@@ -328,5 +330,5 @@ class GudangMongoDB:
     def update_user_exported_xlsx(self, user_exported_xlsx_uuid, document_link):
         db = self.client[RUMAHIOT_GUDANG_DATABASE]
         col = db[RUMAHIOT_LEMARI_USER_EXPORTED_XLSX_COLLECTION]
-        a = col.update_one({'user_exported_xlsx_uuid': user_exported_xlsx_uuid}, {'$set': {'document_ready': True,'document_link': document_link,'time_updated': datetime.datetime.now().timestamp()}})
+        col.update_one({'user_exported_xlsx_uuid': user_exported_xlsx_uuid}, {'$set': {'document_ready': True,'document_link': document_link,'time_updated': datetime.datetime.now().timestamp()}})
 

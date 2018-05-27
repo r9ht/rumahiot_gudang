@@ -99,12 +99,9 @@ def store_generated_device_xlsx_data(request):
 
                                         user_exported_xlsx_uuid = uuid4().hex
                                         date_format = "%d-%m-%Y %H:%M:%S"
-                                        from_time_humanize = gutils.datetime_timezone_converter(datetime.fromtimestamp(float(form.cleaned_data['from_time'])), form.cleaned_data['time_zone']).strftime(date_format)
-                                        to_time_humanize = gutils.datetime_timezone_converter(datetime.fromtimestamp(float(form.cleaned_data['to_time'])), form.cleaned_data['time_zone']).strftime(date_format)
-                                        time_now_humanize = gutils.datetime_timezone_converter(datetime.now(), form.cleaned_data['time_zone']).strftime(date_format)
-                                        document_name = '{} sensor data from {} to {} - generated at {}'.format(device['device_name'], from_time_humanize, to_time_humanize, time_now_humanize)
+
                                         # Write reserved object into db
-                                        db.put_user_exported_xlsx(user_uuid=user['user_uuid'], user_exported_xlsx_uuid=user_exported_xlsx_uuid, document_name=document_name)
+                                        db.put_user_exported_xlsx(user_uuid=user['user_uuid'], user_exported_xlsx_uuid=user_exported_xlsx_uuid, device_uuid=device['device_uuid'], from_time=float(form.cleaned_data['from_time']), to_time=float(form.cleaned_data['to_time']))
 
                                         # Call the async function for generating the sheets
                                         # Todo : make the query call more efficient, by cutting the validation steps
@@ -112,7 +109,7 @@ def store_generated_device_xlsx_data(request):
 
                                         # Return the response object
                                         # Device successfully added
-                                        response_data = rg.success_response_generator(200, "Excel document export successfully queued, you can access the data in x section when it is ready")
+                                        response_data = rg.success_response_generator(200, "Excel document export successfully queued, you can access the data in Exported Data section when it is ready")
                                         return HttpResponse(json.dumps(response_data), content_type="application/json", status=200)
 
                                     else:

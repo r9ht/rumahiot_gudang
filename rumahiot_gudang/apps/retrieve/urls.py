@@ -11,9 +11,11 @@ from rumahiot_gudang.apps.retrieve.views import \
     retrieve_board_pin_options, \
     retrieve_device_data_count_chart, \
     retrieve_device_sensor_status_chart, \
-    retrieve_simple_device_list
+    retrieve_simple_device_list, \
+    retrieve_timezone_list
 
 urlpatterns = [
+    url(r'^timezone/list$', retrieve_timezone_list, name='retrieve_timezone_list'),
     url(r'^device/data$', retrieve_device_data, name='retrieve_device_data'),
     url(r'^device/list$', retrieve_device_list, name='retrieve_device_list'),
     url(r'^device/list/simple$', retrieve_simple_device_list, name='retrieve_simple_device_list'),
