@@ -4,6 +4,7 @@ import copy
 from uuid import uuid4
 
 from pytz import all_timezones
+import numpy
 
 from django.shortcuts import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -138,7 +139,6 @@ def store_generated_device_xlsx_data(request):
         response_data = rg.error_response_generator(400, 'Bad request method')
         return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
 
-
 # Handle request sent by device
 @csrf_exempt
 def store_device_data(request):
@@ -185,7 +185,8 @@ def store_device_data(request):
                         else:
                             # make sure the sensor data type is correct
                             # str for device_sensor_uuid and float for device_sensor_value
-                            if type(s.user_sensor_uuid) is str and (type(s.user_sensor_value) is int or type(s.user_sensor_value) is float):
+                            # Do not forget NaN will be detected as float
+                            if type(s.user_sensor_uuid) is str and (type(s.user_sensor_value) is int or type(s.user_sensor_value) is float) and not numpy.isnan(s.user_sensor_value):
                                 # Append the uuid from request to comapre with the one in user_device document
                                 sensor_list.append(s.user_sensor_uuid)
                                 pass
