@@ -1,5 +1,6 @@
 from pymongo import MongoClient
 from uuid import uuid4
+import pymongo
 
 from rumahiot_gudang.settings import RUMAHIOT_GUDANG_MONGO_HOST, \
     RUMAHIOT_GUDANG_MONGO_PASSWORD, \
@@ -15,7 +16,9 @@ from rumahiot_gudang.settings import RUMAHIOT_GUDANG_MONGO_HOST, \
     RUMAHIOT_GUDANG_USER_SENSOR_MAPPINGS_COLLECTIONS, \
     MATERIAL_COLORS_COLLECTION, \
     RUMAHIOT_LEMARI_USER_WIFI_CONNECTIONS_COLLECTION, \
-    RUMAHIOT_LEMARI_USER_EXPORTED_XLSX_COLLECTION
+    RUMAHIOT_LEMARI_USER_EXPORTED_XLSX_COLLECTION, \
+    RUMAHIOT_GUDANG_GAMPANG_TEMPLATES_COLLECTION, \
+    RUMAHIOT_GUDANG_TLS_FINGERPRINTS_COLLECTION
 
 from bson.json_util import dumps
 import json, datetime
@@ -265,7 +268,7 @@ class GudangMongoDB:
         return result
 
     # Get sensor mapping by user_sensor_mapping_uuid
-    def get_sensor_mapping_by_user_sensor_mapping_uuid(self, user_sensor_mapping_uuid):
+    def get_sensor_mapping_by_uuid(self, user_sensor_mapping_uuid):
         db = self.client[RUMAHIOT_GUDANG_DATABASE]
         col = db[RUMAHIOT_GUDANG_USER_SENSOR_MAPPINGS_COLLECTIONS]
         result = col.find_one({
@@ -332,3 +335,24 @@ class GudangMongoDB:
         col = db[RUMAHIOT_LEMARI_USER_EXPORTED_XLSX_COLLECTION]
         col.update_one({'user_exported_xlsx_uuid': user_exported_xlsx_uuid}, {'$set': {'document_ready': True,'document_link': document_link,'time_updated': datetime.datetime.now().timestamp()}})
 
+
+    # Get the latest gampang arduino code
+    def get_latest_gampang_template_document(self, supported_board_uuid):
+        db = self.client[RUMAHIOT_GUDANG_DATABASE]
+        col = db[RUMAHIOT_GUDANG_GAMPANG_TEMPLATES_COLLECTION]
+        return col.find_one({'supported_board_uuid': supported_board_uuid}, sort=[("time_added", pymongo.DESCENDING)])
+
+    # Get the latest rumahiot TLS fingerprint
+    def get_latest_tls_fingerprint(self, algorithm, domain):
+        db = self.client[RUMAHIOT_GUDANG_DATABASE]
+        col = db[RUMAHIOT_GUDANG_TLS_FINGERPRINTS_COLLECTION]
+        return col.find_one({'algorithm': algorithm, 'domain': domain}, sort=[("time_issued", pymongo.DESCENDING)])
+
+    # Get user sensor by user sensor mapping uuid
+    def get_user_sensor_by_mapping_uuid(self, user_sensor_mapping_uuid):
+        db = self.client[RUMAHIOT_GUDANG_DATABASE]
+        col = db[RUMAHIOT_GUDANG_USER_SENSORS_COLLECTION]
+        result = col.find({
+            'user_sensor_mapping_uuid': user_sensor_mapping_uuid
+        })
+        return result

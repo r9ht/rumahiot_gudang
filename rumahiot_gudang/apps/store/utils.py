@@ -1,13 +1,26 @@
 from rumahiot_gudang.apps.store.mongodb import GudangMongoDB
 from rumahiot_gudang.apps.sidik_module.authentication import GudangSidikModule
 from datetime import datetime
-import random
+import random, string, _random
 from rumahiot_gudang.apps.surat_module.send_email import send_device_android_notification_worker, send_device_notification_email_worker
 from pytz import all_timezones, timezone
 
 import multiprocessing
 
 class GudangUtils:
+
+    # Generate random id string with length n
+    def generate_random_id(self, n, chars=string.ascii_lowercase+string.ascii_uppercase):
+        return ''.join(random.choice(chars) for _ in range(n))
+
+
+    # Convert list to string with newline delimiter
+    def list_to_delimited_string(self, list):
+        delimited_string = ''
+        for element in list:
+            delimited_string += element
+            delimited_string += '\n'
+        return delimited_string
 
     # Convert datetime object into specified timezone
     def datetime_timezone_converter(self, datetimeobject, time_zone):

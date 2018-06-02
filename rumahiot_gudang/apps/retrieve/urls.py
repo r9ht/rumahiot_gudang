@@ -12,13 +12,15 @@ from rumahiot_gudang.apps.retrieve.views import \
     retrieve_device_data_count_chart, \
     retrieve_device_sensor_status_chart, \
     retrieve_simple_device_list, \
-    retrieve_timezone_list
+    retrieve_timezone_list, \
+    retrieve_device_arduino_code
 
 urlpatterns = [
     url(r'^timezone/list$', retrieve_timezone_list, name='retrieve_timezone_list'),
     url(r'^device/data$', retrieve_device_data, name='retrieve_device_data'),
     url(r'^device/list$', retrieve_device_list, name='retrieve_device_list'),
     url(r'^device/list/simple$', retrieve_simple_device_list, name='retrieve_simple_device_list'),
+    url(r'^device/arduino/code$', retrieve_device_arduino_code, name='retrieve_device_arduino_code'),
     url(r'^device/data/count/chart$', retrieve_device_data_count_chart, name='retrieve_device_data_count_chart'),
     url(r'^device/sensor/status/chart$', retrieve_device_sensor_status_chart, name='retrieve_device_sensor_status_chart'),
     url(r'^board/supported/list$', retrieve_supported_board_list, name='retrieve_supported_board_list'),
