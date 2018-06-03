@@ -1,6 +1,7 @@
 from rumahiot_gudang.apps.store.mongodb import GudangMongoDB
 from rumahiot_gudang.apps.sidik_module.authentication import GudangSidikModule
 from datetime import datetime
+from django.shortcuts import HttpResponse
 import random, string, _random
 from rumahiot_gudang.apps.surat_module.send_email import send_device_android_notification_worker, send_device_notification_email_worker
 from pytz import all_timezones, timezone
@@ -463,6 +464,11 @@ class ResponseGenerator:
                 "message": message
             }
         }
+        return response
+
+    def file_response_generator(self, filename, content_type, content):
+        response = HttpResponse(content, content_type=content_type)
+        response['Content-Disposition'] = 'attachment; filename={0}'.format(filename)
         return response
 
     # generate data response in dict format

@@ -5,6 +5,7 @@
         "profile_name": "default",
         "project_name": "rumahiot-gudang",
         "runtime": "python3.6",
-        "s3_bucket": "zappa-eu639sb0d"
+        "s3_bucket": "zappa-eu639sb0d",
+        "timeout_seconds": 300
     }
 }

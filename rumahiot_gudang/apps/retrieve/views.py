@@ -1182,11 +1182,61 @@ def retrieve_simple_device_list(request):
         return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
 
 # Retrieve device arduino code
-def retrieve_device_arduino_code(request):
+def retrieve_device_arduino_code(request, device_uuid):
+    # Gudang class
+    rg = ResponseGenerator()
+    requtils = RequestUtils()
+    auth = GudangSidikModule()
     db = GudangMongoDB()
+    gutils = GudangUtils()
 
-    wifi_connection = { "user_wifi_connection_uuid" : "479158f1939d4e979e8e6330d9f1b170", "user_uuid" : "5083b3ed6d4341ff9d9a6f4f649f1f31", "connection_name" : "Rule : No Anime !", "ssid" : "Rule : No Anime !", "security_enabled" : True, "password" : "coolclub2", "time_updated" : 1527926057.040604 }
-    device = { "supported_board_uuid" : "aa4f5ca2c76b49b6b1469b66cb10f04f", "user_sensor_uuids" : [ "6303737abc7944da83a5c5ad1a334aee", "94df95ade62c4e3c9cdcb9597912d217" ], "device_uuid" : "2f31c945eb5745a6a138d3e20538b2ab", "position" : { "lat" : -7.057257000000001, "lng" : 110.44223650000004 }, "location_text" : "Jl. Sipodang Barat I, Tembalang, Tembalang, Kota Semarang, Jawa Tengah, ID, 50275", "read_key" : "84c5666ccb1442d5bec878c79257e4e8", "time_added" : 1527926153.508068, "user_uuid" : "5083b3ed6d4341ff9d9a6f4f649f1f31", "write_key" : "b9d6538bb1ac4ec58680b10acf4fcc67", "device_name" : "Auto generated test", "user_wifi_connection_uuid" : "479158f1939d4e979e8e6330d9f1b170", "device_data_sending_interval" : 100 }
-    tls_fingerprint = db.get_latest_tls_fingerprint(algorithm='SHA1', domain='gudang.rumahiot.panjatdigital.com')
-    tmaster = GudangTemplateMaster(wifi_connection=wifi_connection, device=device, tls_fingerprint=tls_fingerprint)
-    tmaster.generate_gampang_template()
+    if request.method == 'GET' :
+        # Check the token
+        try:
+            token = requtils.get_access_token(request)
+        except KeyError:
+            response_data = rg.error_response_generator(401, 'Please define the authorization header')
+            return HttpResponse(json.dumps(response_data), content_type='application/json', status=401)
+        else:
+            if token['token'] != None:
+                user = auth.get_user_data(token['token'])
+                # Check token validity
+                if user['user_uuid'] != None:
+                    device = db.get_device_data_by_uuid(user_uuid=user['user_uuid'], device_uuid=device_uuid)
+                    if (device) :
+                        wifi_connection = db.get_user_wifi_connection_by_uuid(user_uuid=user['user_uuid'], user_wifi_connection_uuid=device['user_wifi_connection_uuid'])
+                        if (wifi_connection):
+                            tls_fingerprint = db.get_latest_tls_fingerprint(algorithm='SHA1', domain='gudang.rumahiot.panjatdigital.com')
+                            # Initiate the template object
+                            tmaster = GudangTemplateMaster(wifi_connection=wifi_connection, device=device, tls_fingerprint=tls_fingerprint)
+                            string_template = tmaster.generate_gampang_template()
+                            # Prepare the filename
+                            file_name = 'rumahiot_{}.ino'.format(device['device_name'].lower().replace(' ', '_'))
+                            file_response = rg.file_response_generator(filename=file_name, content_type='text/x-arduino', content=string_template)
+                            return file_response
+
+                        else:
+                            response_data = rg.error_response_generator(400, 'Invalid wifi connection uuid')
+                            return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
+                    else:
+                        response_data = rg.error_response_generator(400, 'Invalid device uuid')
+                        return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
+                else:
+                    response_data = rg.error_response_generator(401, user['error'])
+                    return HttpResponse(json.dumps(response_data), content_type='application/json', status=401)
+            else:
+                response_data = rg.error_response_generator(401, token['error'])
+                return HttpResponse(json.dumps(response_data), content_type="application/json", status=401)
+    else:
+        response_data = rg.error_response_generator(400, 'Bad request method')
+        return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
+
+
+
+
+    #
+    # wifi_connection = { "user_wifi_connection_uuid" : "479158f1939d4e979e8e6330d9f1b170", "user_uuid" : "5083b3ed6d4341ff9d9a6f4f649f1f31", "connection_name" : "Rule : No Anime !", "ssid" : "Rule : No Anime !", "security_enabled" : True, "password" : "coolclub2", "time_updated" : 1527926057.040604 }
+    # device = { "supported_board_uuid" : "aa4f5ca2c76b49b6b1469b66cb10f04f", "user_sensor_uuids" : [ "6303737abc7944da83a5c5ad1a334aee", "94df95ade62c4e3c9cdcb9597912d217" ], "device_uuid" : "2f31c945eb5745a6a138d3e20538b2ab", "position" : { "lat" : -7.057257000000001, "lng" : 110.44223650000004 }, "location_text" : "Jl. Sipodang Barat I, Tembalang, Tembalang, Kota Semarang, Jawa Tengah, ID, 50275", "read_key" : "84c5666ccb1442d5bec878c79257e4e8", "time_added" : 1527926153.508068, "user_uuid" : "5083b3ed6d4341ff9d9a6f4f649f1f31", "write_key" : "b9d6538bb1ac4ec58680b10acf4fcc67", "device_name" : "Auto generated test", "user_wifi_connection_uuid" : "479158f1939d4e979e8e6330d9f1b170", "device_data_sending_interval" : 100 }
+    # tls_fingerprint = db.get_latest_tls_fingerprint(algorithm='SHA1', domain='gudang.rumahiot.panjatdigital.com')
+    # tmaster = GudangTemplateMaster(wifi_connection=wifi_connection, device=device, tls_fingerprint=tls_fingerprint)
+    # tmaster.generate_gampang_template()

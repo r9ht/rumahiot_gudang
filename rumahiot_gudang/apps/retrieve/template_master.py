@@ -107,10 +107,7 @@ class GudangTemplateMaster:
             for sensor_configuration_data in sensor_configuration['sensor_configuration_datas']:
                 sensor_configuration_datas.append(sensor_configuration_data)
 
-        # print(library_variable_initialization_codes)
-        # print(library_initialization_commands)
-        # print(sensor_configuration_datas)
-        print(latest_gampang_template.render(ssid=ssid,
+        return latest_gampang_template.render(ssid=ssid,
                                              wifi_password=wifi_password,
                                              time_generated=time_generated,
                                              write_key=write_key,
@@ -120,15 +117,6 @@ class GudangTemplateMaster:
                                              library_initialization_commands=self.gutils.list_to_delimited_string(library_initialization_commands),
                                              user_sensor_configuration=self.gutils.list_to_delimited_string(sensor_configuration_datas),
                                              sending_interval=sending_interval
-                                             ))
-
-        # print(self.sensor_configurations)
-
-
-        # for sensor_configuration in self.sensor_configurations:
-        #     print(sensor_configuration)
-        # rendered = template.render(library="Mantap gan")
-        # print(rendered)
-
+                                             )
 
 
