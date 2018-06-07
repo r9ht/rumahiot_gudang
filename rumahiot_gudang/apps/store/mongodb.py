@@ -18,7 +18,8 @@ from rumahiot_gudang.settings import RUMAHIOT_GUDANG_MONGO_HOST, \
     RUMAHIOT_LEMARI_USER_WIFI_CONNECTIONS_COLLECTION, \
     RUMAHIOT_LEMARI_USER_EXPORTED_XLSX_COLLECTION, \
     RUMAHIOT_GUDANG_GAMPANG_TEMPLATES_COLLECTION, \
-    RUMAHIOT_GUDANG_TLS_FINGERPRINTS_COLLECTION
+    RUMAHIOT_GUDANG_TLS_FINGERPRINTS_COLLECTION, \
+    RUMAHIOT_LEMARI_USER_DASHBOARD_CHARTS_COLLECTION
 
 from bson.json_util import dumps
 import json, datetime
@@ -46,7 +47,8 @@ class GudangMongoDB:
         db = self.client[RUMAHIOT_GUDANG_DATABASE]
         col = db[RUMAHIOT_GUDANG_USERS_DEVICE_COLLECTION]
         return col.find({
-            'user_uuid': user_uuid
+            'user_uuid': user_uuid,
+            'removed': False
         })
 
     # Get material color document from db
@@ -80,9 +82,9 @@ class GudangMongoDB:
         col = db[RUMAHIOT_GUDANG_USERS_DEVICE_COLLECTION]
         # w for write_key , r for read_key
         if key_type == "w":
-            result = col.find_one({'write_key': key})
+            result = col.find_one({'write_key': key, 'removed': False})
         elif key_type == "r":
-            result = col.find_one({'read_key': key})
+            result = col.find_one({'read_key': key, 'removed': False})
         else:
             result = None
         return result
@@ -99,7 +101,7 @@ class GudangMongoDB:
         # -i Indicate insensitive case for the parameter
         results = col.find({'$and': [{'user_uuid': user_uuid}, {
             '$or': [{'device_name': {'$regex': text, '$options': '-i'}},
-                    {"location_text": {'$regex': text, '$options': '-i'}}]}]}).sort([("_id", direction)]).skip(
+                    {"location_text": {'$regex': text, '$options': '-i'}}]}, {'removed': False}]}).sort([("_id", direction)]).skip(
             skip).limit(limit)
         return results
 
@@ -162,7 +164,7 @@ class GudangMongoDB:
     def get_device_by_uuid(self, device_uuid):
         db = self.client[RUMAHIOT_GUDANG_DATABASE]
         col = db[RUMAHIOT_GUDANG_USERS_DEVICE_COLLECTION]
-        result = col.find_one({'device_uuid': device_uuid})
+        result = col.find_one({'device_uuid': device_uuid, 'removed': False})
         return result
 
     # get user sensor using user_sensor_uuid
@@ -180,6 +182,16 @@ class GudangMongoDB:
         col = db[RUMAHIOT_GUDANG_MASTER_SENSORS_COLLECTION]
         result = col.find_one({'master_sensor_uuid': master_sensor_uuid})
         return result
+
+    # Update device detail data
+    # device_name, user_wifi_connection_uuid, and location
+    def update_device_detail(self, device_uuid, device_name, user_wifi_connection_uuid, position):
+        db = self.client[RUMAHIOT_GUDANG_DATABASE]
+        col = db[RUMAHIOT_GUDANG_USERS_DEVICE_COLLECTION]
+        col.update_one({'device_uuid': device_uuid}, {'$set': {'device_name': device_name,
+                                                     'user_wifi_connection_uuid': user_wifi_connection_uuid,
+                                                     'location': position
+                                                     }})
 
     # get n latest device data
     # input parameter : device_uuid(string), n (integer)
@@ -309,10 +321,12 @@ class GudangMongoDB:
         # bson dumps will take empty list as a string
         return json.loads(dumps(results))
 
+    # Get device data by uuid
+    # Input : user_uuid(string), device_uuid(string)
     def get_device_data_by_uuid(self, user_uuid, device_uuid):
         db = self.client[RUMAHIOT_GUDANG_DATABASE]
         col = db[RUMAHIOT_GUDANG_USERS_DEVICE_COLLECTION]
-        result = col.find_one({'user_uuid': user_uuid, 'device_uuid': device_uuid})
+        result = col.find_one({'user_uuid': user_uuid, 'device_uuid': device_uuid, 'removed': False})
         return result
 
     # Put new user exported xlsx document
@@ -356,3 +370,23 @@ class GudangMongoDB:
             'user_sensor_mapping_uuid': user_sensor_mapping_uuid
         })
         return result
+
+    def get_user_sensor_mapping_by_uuid(self, user_sensor_mapping_uuid):
+        db = self.client[RUMAHIOT_GUDANG_DATABASE]
+        col = db[RUMAHIOT_GUDANG_USER_SENSOR_MAPPINGS_COLLECTIONS]
+        result = col.find_one({
+            'user_sensor_mapping_uuid': user_sensor_mapping_uuid
+        })
+        return result
+
+    # Remove user_device
+    # Input : device_uuid (string)
+    def remove_user_device(self, device_uuid):
+        db = self.client[RUMAHIOT_GUDANG_DATABASE]
+        col = db[RUMAHIOT_GUDANG_USERS_DEVICE_COLLECTION]
+        col.update_one({'device_uuid': device_uuid, 'removed': False}, {'$set': {'removed': True}})
+        # Remove the dashboard chart
+        col = db[RUMAHIOT_LEMARI_USER_DASHBOARD_CHARTS_COLLECTION]
+        col.remove({
+            'device_uuid': device_uuid
+        })

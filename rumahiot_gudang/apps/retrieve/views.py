@@ -49,6 +49,48 @@ def retrieve_timezone_list(request):
         response_data = rg.error_response_generator(400, 'Bad request method')
         return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
 
+# Retrieve specified device information
+def retrieve_device_detail(request, device_uuid):
+    # Gudang class
+    rg = ResponseGenerator()
+    requtils = RequestUtils()
+    auth = GudangSidikModule()
+    db = GudangMongoDB()
+
+    if request.method == 'GET':
+        try:
+            token = requtils.get_access_token(request)
+        except KeyError:
+            response_data = rg.error_response_generator(401, "Please define the authorization header")
+            return HttpResponse(json.dumps(response_data), content_type="application/json", status=401)
+        else:
+            if token['token'] != None:
+                user = auth.get_user_data(token['token'])
+                if user['user_uuid'] != None:
+                    device = db.get_device_by_uuid(device_uuid=device_uuid)
+                    if (device):
+                        if device['user_uuid'] == user['user_uuid'] :
+                            device.pop('_id')
+                            data = device
+                            # return response object
+                            response_data = rg.data_response_generator(data)
+                            return HttpResponse(json.dumps(response_data), content_type="application/json", status=200)
+                        else:
+                            response_data = rg.error_response_generator(400, 'Invalid device uuid')
+                            return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
+                    else:
+                        response_data = rg.error_response_generator(400, 'Invalid device uuid')
+                        return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
+                else:
+                    response_data = rg.error_response_generator(401, user['error'])
+                    return HttpResponse(json.dumps(response_data), content_type="application/json", status=401)
+            else:
+                response_data = rg.error_response_generator(401, token['error'])
+                return HttpResponse(json.dumps(response_data), content_type="application/json", status=401)
+    else:
+        response_data = rg.error_response_generator(400, 'Bad request method')
+        return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
+
 # Retrieve board pin mapping for specified sensor
 # Using get because we need url parameter
 def retrieve_board_pin_options(request):
@@ -1231,12 +1273,80 @@ def retrieve_device_arduino_code(request, device_uuid):
         response_data = rg.error_response_generator(400, 'Bad request method')
         return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
 
+# Retrieve user sensor mapping
+def retrieve_user_sensor_mapping(request, device_uuid):
+    # Gudang class
+    rg = ResponseGenerator()
+    requtils = RequestUtils()
+    auth = GudangSidikModule()
+    db = GudangMongoDB()
+    gutils = GudangUtils()
+
+    if request.method == 'GET':
+        # Check the token
+        try:
+            token = requtils.get_access_token(request)
+        except KeyError:
+            response_data = rg.error_response_generator(401, 'Please define the authorization header')
+            return HttpResponse(json.dumps(response_data), content_type='application/json', status=401)
+        else:
+            if token['token'] != None:
+                user = auth.get_user_data(token['token'])
+                # Check token validity
+                if user['user_uuid'] != None:
+                    device = db.get_device_data_by_uuid(user_uuid=user['user_uuid'], device_uuid=device_uuid)
+                    if (device):
+                        user_sensor_mapping_list = []
+                        user_sensor_mapping_uuid_list = []
+                        master_sensor_reference_list = []
+
+                        data = {
+                            'sensor_mapping_datas': [],
+                        }
+
+                        # Iterate throught user sensor
+                        for user_sensor_uuid in device['user_sensor_uuids']:
+                            user_sensor = db.get_user_sensor_by_uuid(user_sensor_uuid=user_sensor_uuid)
+                            user_sensor_mapping = db.get_user_sensor_mapping_by_uuid(user_sensor_mapping_uuid=user_sensor['user_sensor_mapping_uuid'])
+                            master_sensor = db.get_master_sensor_by_uuid(master_sensor_uuid=user_sensor['master_sensor_uuid'])
+                            master_sensor_reference = db.get_master_sensor_reference_by_uuid(master_sensor_reference_uuid=master_sensor['master_sensor_reference_uuid'])
+
+                            if user_sensor['user_sensor_mapping_uuid'] not in user_sensor_mapping_uuid_list:
+                                # Prepare & remove unnecessary data
+                                user_sensor_mapping.pop('user_sensor_mapping_uuid')
+                                user_sensor_mapping.pop('time_added')
+                                user_sensor_mapping.pop('_id')
+                                master_sensor_reference.pop('_id')
+                                master_sensor_reference.pop('master_sensor_reference_uuid')
+                                master_sensor_reference.pop('library_dependencies')
+                                master_sensor_reference.pop('library_variable_initialization')
+                                master_sensor_reference.pop('library_initialization_command')
+                                master_sensor_reference.pop('sensor_pin_mappings')
+                                master_sensor_reference.pop('master_sensor_uuids')
+                                master_sensor_reference.pop('sensor_image_source')
+
+                                sensor_mapping_data = {
+                                    'pin_mappings': user_sensor_mapping['sensor_pin_mappings'],
+                                    'master_sensor_reference': master_sensor_reference
+                                }
+                                data['sensor_mapping_datas'].append(sensor_mapping_data)
+                                user_sensor_mapping_uuid_list.append(user_sensor['user_sensor_mapping_uuid'])
+
+                        data['sensor_mapping_data_count'] = len(data['sensor_mapping_datas'])
+                        # return response object
+                        response_data = rg.data_response_generator(data)
+                        return HttpResponse(json.dumps(response_data), content_type="application/json", status=200)
 
 
-
-    #
-    # wifi_connection = { "user_wifi_connection_uuid" : "479158f1939d4e979e8e6330d9f1b170", "user_uuid" : "5083b3ed6d4341ff9d9a6f4f649f1f31", "connection_name" : "Rule : No Anime !", "ssid" : "Rule : No Anime !", "security_enabled" : True, "password" : "coolclub2", "time_updated" : 1527926057.040604 }
-    # device = { "supported_board_uuid" : "aa4f5ca2c76b49b6b1469b66cb10f04f", "user_sensor_uuids" : [ "6303737abc7944da83a5c5ad1a334aee", "94df95ade62c4e3c9cdcb9597912d217" ], "device_uuid" : "2f31c945eb5745a6a138d3e20538b2ab", "position" : { "lat" : -7.057257000000001, "lng" : 110.44223650000004 }, "location_text" : "Jl. Sipodang Barat I, Tembalang, Tembalang, Kota Semarang, Jawa Tengah, ID, 50275", "read_key" : "84c5666ccb1442d5bec878c79257e4e8", "time_added" : 1527926153.508068, "user_uuid" : "5083b3ed6d4341ff9d9a6f4f649f1f31", "write_key" : "b9d6538bb1ac4ec58680b10acf4fcc67", "device_name" : "Auto generated test", "user_wifi_connection_uuid" : "479158f1939d4e979e8e6330d9f1b170", "device_data_sending_interval" : 100 }
-    # tls_fingerprint = db.get_latest_tls_fingerprint(algorithm='SHA1', domain='gudang.rumahiot.panjatdigital.com')
-    # tmaster = GudangTemplateMaster(wifi_connection=wifi_connection, device=device, tls_fingerprint=tls_fingerprint)
-    # tmaster.generate_gampang_template()
+                    else:
+                        response_data = rg.error_response_generator(400, 'Invalid device uuid')
+                        return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
+                else:
+                    response_data = rg.error_response_generator(401, user['error'])
+                    return HttpResponse(json.dumps(response_data), content_type='application/json', status=401)
+            else:
+                response_data = rg.error_response_generator(401, token['error'])
+                return HttpResponse(json.dumps(response_data), content_type="application/json", status=401)
+    else:
+        response_data = rg.error_response_generator(400, 'Bad request method')
+        return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)

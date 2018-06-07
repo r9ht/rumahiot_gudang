@@ -46,3 +46,11 @@ class SensorPinMappingResource(object):
         self.device_arduino_pin = device_arduino_pin
         self.device_pin_name = device_pin_name
         self.function = function
+
+# Update device detail resource
+class UpdateDeviceDetailResource(object):
+    def __init__(self, device_uuid, device_name, position, user_wifi_connection_uuid):
+        self.device_uuid = device_uuid
+        self.device_name = device_name
+        self.position = position
+        self.user_wifi_connection_uuid = user_wifi_connection_uuid

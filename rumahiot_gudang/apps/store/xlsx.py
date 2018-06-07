@@ -89,7 +89,7 @@ def buffered_xlsxwriter(user_uuid, device_uuid, from_time, to_time, time_zone, u
         worksheets[user_sensor_uuid].write('E9', gutils.datetime_timezone_converter(datetime.datetime.now(), time_zone).strftime(date_format))
         worksheets[user_sensor_uuid].write('A11', 'No.', center_text_format)
         worksheets[user_sensor_uuid].write('B11', 'Time', center_text_format)
-        worksheets[user_sensor_uuid].write('C11', 'Sensor Value', center_text_format)
+        worksheets[user_sensor_uuid].write('C11', 'Sensor Value {}({})'.format( master_sensor['master_sensor_default_unit_name'],master_sensor['master_sensor_default_unit_symbol']), center_text_format)
 
         # Get the sensor data
         sensor_datas = db.get_device_sensor_data_interval(device_uuid=user_device['device_uuid'], from_time=from_time, to_time=to_time, user_sensor_uuid=user_sensor_uuid)
@@ -101,7 +101,7 @@ def buffered_xlsxwriter(user_uuid, device_uuid, from_time, to_time, time_zone, u
             worksheets[user_sensor_uuid].write(row_index, column_index, index + 1, left_text_format)
             worksheets[user_sensor_uuid].write(row_index, column_index + 1, gutils.datetime_timezone_converter(datetime.datetime.fromtimestamp(sensor_data['time_added']), time_zone).strftime(date_format),
                                                left_text_format)
-            worksheets[user_sensor_uuid].write(row_index, column_index + 2, '{}{}'.format(sensor_data['sensor_datas']['user_sensor_value'], master_sensor['master_sensor_default_unit_symbol']),
+            worksheets[user_sensor_uuid].write(row_index, column_index + 2, '{}'.format(sensor_data['sensor_datas']['user_sensor_value']),
                                                center_text_format)
             row_index += 1
 

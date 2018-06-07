@@ -50,6 +50,13 @@ class GudangTemplateMaster:
             code_filler_list = []
             # List for sensor configuration for each physical sensor
             sensor_json_configuration_format_list = []
+            # List for digital pin that used as ground pin
+            grounded_digital_pin_list = []
+
+            # For digital pin that used as ground pin
+            for sensor_pin_mapping in user_sensor_mapping['sensor_pin_mappings']:
+                if (sensor_pin_mapping['function'] == 'GROUND') and (sensor_pin_mapping['device_pin'] != 'GND'):
+                    grounded_digital_pin_list.append('pinMode({}, OUTPUT);\ndigitalWrite({}, LOW);'.format(sensor_pin_mapping['device_arduino_pin'], sensor_pin_mapping['device_arduino_pin']))
 
             for code_filler in master_sensor_reference['library_variable_initialization']['code_filler']:
                 # Generate the variable name
@@ -72,7 +79,8 @@ class GudangTemplateMaster:
                 'sensor_var_name': sensor_varname,
                 'library_variable_initialization_code' : master_sensor_reference['library_variable_initialization']['code'].format(*code_filler_list),
                 'library_initialization_commands':  master_sensor_reference['library_initialization_command'].format(sensor_varname),
-                'sensor_configuration_datas': sensor_json_configuration_format_list
+                'sensor_configuration_datas': sensor_json_configuration_format_list,
+                'grounded_digital_pins': grounded_digital_pin_list
             }
             self.sensor_configurations.append(sensor_configuration)
 
@@ -98,6 +106,8 @@ class GudangTemplateMaster:
         library_initialization_commands = []
         # Variable initializations for json payload data
         sensor_configuration_datas = []
+        # List for digital pin that used as ground pin
+        grounded_digital_pin_list = []
         # Data sending interval
         sending_interval = self.device['device_data_sending_interval'] * 1000 * 60
 
@@ -106,17 +116,20 @@ class GudangTemplateMaster:
             library_initialization_commands.append(sensor_configuration['library_initialization_commands'])
             for sensor_configuration_data in sensor_configuration['sensor_configuration_datas']:
                 sensor_configuration_datas.append(sensor_configuration_data)
+            for grounded_digital_pin in sensor_configuration['grounded_digital_pins']:
+                grounded_digital_pin_list.append(grounded_digital_pin)
 
         return latest_gampang_template.render(ssid=ssid,
-                                             wifi_password=wifi_password,
-                                             time_generated=time_generated,
-                                             write_key=write_key,
-                                             tls_fingerprint=tls_fingerprint,
-                                             added_library =self.gutils.list_to_delimited_string(self.library_dependencies),
-                                             library_variable_initialization=self.gutils.list_to_delimited_string(library_variable_initialization_codes),
-                                             library_initialization_commands=self.gutils.list_to_delimited_string(library_initialization_commands),
-                                             user_sensor_configuration=self.gutils.list_to_delimited_string(sensor_configuration_datas),
-                                             sending_interval=sending_interval
+                                              wifi_password=wifi_password,
+                                              time_generated=time_generated,
+                                              write_key=write_key,
+                                              tls_fingerprint=tls_fingerprint,
+                                              added_library =self.gutils.list_to_delimited_string(self.library_dependencies),
+                                              library_variable_initialization=self.gutils.list_to_delimited_string(library_variable_initialization_codes),
+                                              library_initialization_commands=self.gutils.list_to_delimited_string(library_initialization_commands),
+                                              user_sensor_configuration=self.gutils.list_to_delimited_string(sensor_configuration_datas),
+                                              grounded_digital_pins=self.gutils.list_to_delimited_string(grounded_digital_pin_list),
+                                              sending_interval=sending_interval
                                              )
 
 

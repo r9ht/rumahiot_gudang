@@ -186,7 +186,7 @@ def store_device_data(request):
                             # make sure the sensor data type is correct
                             # str for device_sensor_uuid and float for device_sensor_value
                             # Do not forget NaN will be detected as float
-                            if type(s.user_sensor_uuid) is str and (type(s.user_sensor_value) is int or type(s.user_sensor_value) is float) and not numpy.isnan(s.user_sensor_value):
+                            if type(s.user_sensor_uuid) is str and gutils.float_int_check(s.user_sensor_value):
                                 # Append the uuid from request to comapre with the one in user_device document
                                 sensor_list.append(s.user_sensor_uuid)
                                 pass
@@ -418,14 +418,15 @@ def store_new_device(request):
                                                     'write_key': uuid4().hex,
                                                     'device_name': new_device.device_name,
                                                     'user_wifi_connection_uuid': new_device.user_wifi_connection_uuid,
-                                                    'device_data_sending_interval': new_device.device_data_sending_interval
+                                                    'device_data_sending_interval': new_device.device_data_sending_interval,
+                                                    'removed': False
                                                 }
 
                                                 # Write into db
                                                 db.put_user_device(user_device=user_device)
 
                                                 # Device successfully added
-                                                response_data = rg.success_response_generator(200, "New device successfully added")
+                                                response_data = rg.success_response_generator(200, "Device successfully added")
                                                 return HttpResponse(json.dumps(response_data), content_type="application/json", status=200)
 
                                             else:
