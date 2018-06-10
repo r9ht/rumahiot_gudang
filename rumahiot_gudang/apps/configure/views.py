@@ -132,17 +132,20 @@ def update_device_detail(request):
                             return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
                         else:
                             # Check for the datatype
-                            if gutils.string_length_checker(new_device_detail.device_uuid, 32) and gutils.string_length_checker(new_device_detail.device_name, 32) and type(new_device_detail.user_wifi_connection_uuid) is str and type(new_device_detail.device_name) is str and type(new_device_detail.device_uuid) is str and gutils.float_int_check(position.lat) and gutils.float_int_check(position.lng):
+                            if gutils.string_length_checker(new_device_detail.device_uuid, 32) and gutils.string_length_checker(new_device_detail.device_name, 32) and type(new_device_detail.user_wifi_connection_uuid) is str and type(new_device_detail.device_name) is str and type(new_device_detail.device_uuid) is str and gutils.float_int_check(position.lat) and gutils.float_int_check(position.lng) and type(new_device_detail.location_text) is str and gutils.float_int_check(new_device_detail.device_data_sending_interval):
                                 # check user_wifi_connection_uuid
-                                wifi_connection = db.get_user_wifi_connection_by_uuid(user_uuid=user['user_uuid'], user_wifi_connection_uuid=new_device_detail.user_wifi_connection_uuid)
-                                if(wifi_connection) :
-                                    db.update_device_detail(device_uuid=new_device_detail.device_uuid, device_name=new_device_detail.device_name, position=new_device_detail.position, user_wifi_connection_uuid=new_device_detail.user_wifi_connection_uuid)
-                                    # Device successfully added
-                                    response_data = rg.success_response_generator(200, 'Device detail successfully updated')
-                                    return HttpResponse(json.dumps(response_data), content_type='application/json', status=200)
-
+                                if (new_device_detail.device_data_sending_interval <= 1440 and new_device_detail.device_data_sending_interval >= 5) :
+                                    wifi_connection = db.get_user_wifi_connection_by_uuid(user_uuid=user['user_uuid'], user_wifi_connection_uuid=new_device_detail.user_wifi_connection_uuid)
+                                    if (wifi_connection):
+                                        db.update_device_detail(device_uuid=new_device_detail.device_uuid, device_name=new_device_detail.device_name, position=new_device_detail.position,user_wifi_connection_uuid=new_device_detail.user_wifi_connection_uuid, location_text=new_device_detail.location_text, device_data_sending_interval=new_device_detail.device_data_sending_interval)
+                                        # Device successfully added
+                                        response_data = rg.success_response_generator(200, 'Device detail successfully updated')
+                                        return HttpResponse(json.dumps(response_data), content_type='application/json', status=200)
+                                    else:
+                                        response_data = rg.error_response_generator(400, 'Invalid wifi connection uuid')
+                                        return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
                                 else:
-                                    response_data = rg.error_response_generator(400, 'Invalid wifi connection uuid')
+                                    response_data = rg.error_response_generator(400, 'Invalid device data sending interval')
                                     return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
                             else:
                                 response_data = rg.error_response_generator(400, 'Invalid request data type')

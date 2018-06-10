@@ -70,7 +70,11 @@ def retrieve_device_detail(request, device_uuid):
                     device = db.get_device_by_uuid(device_uuid=device_uuid)
                     if (device):
                         if device['user_uuid'] == user['user_uuid'] :
+                            device_connection = db.get_user_wifi_connection_by_uuid(user_wifi_connection_uuid=device['user_wifi_connection_uuid'], user_uuid=user['user_uuid'])
+                            device_connection.pop('_id')
                             device.pop('_id')
+                            # Add connection detail
+                            device['device_wifi_connection'] = device_connection
                             data = device
                             # return response object
                             response_data = rg.data_response_generator(data)

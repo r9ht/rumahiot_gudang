@@ -185,12 +185,12 @@ class GudangMongoDB:
 
     # Update device detail data
     # device_name, user_wifi_connection_uuid, and location
-    def update_device_detail(self, device_uuid, device_name, user_wifi_connection_uuid, position):
+    def update_device_detail(self, device_uuid, device_name, user_wifi_connection_uuid, position, location_text, device_data_sending_interval):
         db = self.client[RUMAHIOT_GUDANG_DATABASE]
         col = db[RUMAHIOT_GUDANG_USERS_DEVICE_COLLECTION]
         col.update_one({'device_uuid': device_uuid}, {'$set': {'device_name': device_name,
                                                      'user_wifi_connection_uuid': user_wifi_connection_uuid,
-                                                     'location': position
+                                                     'position': position, 'location_text': location_text, 'device_data_sending_interval': device_data_sending_interval
                                                      }})
 
     # get n latest device data

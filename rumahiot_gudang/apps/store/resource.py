@@ -49,8 +49,10 @@ class SensorPinMappingResource(object):
 
 # Update device detail resource
 class UpdateDeviceDetailResource(object):
-    def __init__(self, device_uuid, device_name, position, user_wifi_connection_uuid):
+    def __init__(self, device_uuid, device_name, position, user_wifi_connection_uuid, location_text, device_data_sending_interval):
         self.device_uuid = device_uuid
         self.device_name = device_name
         self.position = position
         self.user_wifi_connection_uuid = user_wifi_connection_uuid
+        self.location_text = location_text
+        self.device_data_sending_interval = device_data_sending_interval
