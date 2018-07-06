@@ -15,7 +15,8 @@ from rumahiot_gudang.apps.retrieve.views import \
     retrieve_timezone_list, \
     retrieve_device_arduino_code, \
     retrieve_user_sensor_mapping, \
-    retrieve_device_detail
+    retrieve_device_detail, \
+    retrieve_detailed_supported_board_list
 
 urlpatterns = [
     url(r'^timezone/list$', retrieve_timezone_list, name='retrieve_timezone_list'),
@@ -27,6 +28,7 @@ urlpatterns = [
     url(r'^device/data/count/chart$', retrieve_device_data_count_chart, name='retrieve_device_data_count_chart'),
     url(r'^device/sensor/status/chart$', retrieve_device_sensor_status_chart, name='retrieve_device_sensor_status_chart'),
     url(r'^board/supported/list$', retrieve_supported_board_list, name='retrieve_supported_board_list'),
+    url(r'^board/supported/detailed/list$', retrieve_detailed_supported_board_list, name='retrieve_detailed_supported_board_list'),
     url(r'^board/pin/options', retrieve_board_pin_options, name='retrieve_board_pin_options'),
     url(r'^sensor/master/reference/list$', retrieve_master_sensor_reference_list, name='retrieve_master_sensor_reference_list'),
     url(r'^sensor/mapping/(?P<device_uuid>.+)$', retrieve_user_sensor_mapping, name='retrieve_user_sensor_mapping'),

@@ -10,7 +10,7 @@ from rumahiot_gudang.apps.sidik_module.authorization import GudangSidikModule
 from rumahiot_gudang.apps.store.mongodb import GudangMongoDB
 from rumahiot_gudang.apps.store.utils import RequestUtils, ResponseGenerator, GudangUtils
 from rumahiot_gudang.apps.retrieve.template_master import GudangTemplateMaster
-from rumahiot_gudang.apps.sidik_module.decorator import get_method_required, authentication_required
+from rumahiot_gudang.apps.sidik_module.decorator import get_method_required, authentication_required, admin_authentication_required
 
 from calendar import monthrange
 
@@ -976,6 +976,7 @@ def retrieve_device_arduino_code(request, user, device_uuid):
 @get_method_required
 @authentication_required
 def retrieve_user_sensor_mapping(request, user, device_uuid):
+
     # Gudang class
     rg = ResponseGenerator()
     db = GudangMongoDB()
@@ -1024,3 +1025,22 @@ def retrieve_user_sensor_mapping(request, user, device_uuid):
     else:
         response_data = rg.error_response_generator(400, 'Invalid device uuid')
         return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
+
+@get_method_required
+@admin_authentication_required
+def retrieve_detailed_supported_board_list(request, user):
+
+    # Gudang class
+    rg = ResponseGenerator()
+    db = GudangMongoDB()
+
+    all_detailed_supported_board = db.get_all_detailed_supported_board()
+
+    data = {
+        'detailed_supported_boards': all_detailed_supported_board,
+        'detailed_supported_boards_count': len(all_detailed_supported_board)
+    }
+
+    # Generate response object
+    response_data = rg.data_response_generator(data)
+    return HttpResponse(json.dumps(response_data), content_type='application/json', status=200)

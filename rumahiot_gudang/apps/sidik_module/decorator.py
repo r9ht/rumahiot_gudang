@@ -75,3 +75,37 @@ def authentication_required(function):
     token_check.__name__ = function.__name__
 
     return token_check
+
+# Decorator to make sure admin is authenticated
+def admin_authentication_required(function):
+
+    def token_check(request, *args, **kwargs):
+
+        requtils = RequestUtils()
+        auth = GudangSidikModule()
+        rg = ResponseGenerator()
+
+        # Check the token
+        try:
+            token = requtils.get_access_token(request)
+        except KeyError:
+            response_data = rg.error_response_generator(401, 'Please define the authorization header')
+            return HttpResponse(json.dumps(response_data), content_type='application/json', status=401)
+        else:
+            if token['token'] != None:
+                user = auth.get_admin_data(token['token'])
+                # Check token validity
+                if user['user_uuid'] != None:
+                    # Return the user object too
+                    return function(request, user, *args, **kwargs)
+                else:
+                    response_data = rg.error_response_generator(401, user['error'])
+                    return HttpResponse(json.dumps(response_data), content_type='application/json', status=401)
+            else:
+                response_data = rg.error_response_generator(401, token['error'])
+                return HttpResponse(json.dumps(response_data), content_type="application/json", status=401)
+
+    token_check.__doc__ = function.__doc__
+    token_check.__name__ = function.__name__
+
+    return token_check

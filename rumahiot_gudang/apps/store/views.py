@@ -13,13 +13,145 @@ from rumahiot_gudang.apps.store.forms import ExportXlsxDeviceDataForm
 from rumahiot_gudang.apps.store.xlsx import buffered_xlsxwriter
 
 from rumahiot_gudang.apps.store.mongodb import GudangMongoDB
-from rumahiot_gudang.apps.store.resource import DeviceDataResource, SensorDataResource, DevicePositionResource, SensorPinMappingResource, AddedSensorResource, NewDeviceResource
+from rumahiot_gudang.apps.store.resource import DeviceDataResource, SensorDataResource, DevicePositionResource, \
+    SensorPinMappingResource, AddedSensorResource, NewDeviceResource, NewSupportedBoardResource, \
+    NewSupportedBoardPinResource, NewSupportedSensorResource, LibraryVariableInitializationResource, \
+    NewSupportedSensorMappingResource, MasterSensorResource
 from rumahiot_gudang.apps.store.utils import ResponseGenerator, GudangUtils, RequestUtils
 from rumahiot_gudang.apps.sidik_module.authorization import GudangSidikModule
 from rumahiot_gudang.settings import RUMAHIOT_GUDANG_DATABASE, RUMAHIOT_GUDANG_DEVICE_DATA_COLLECTION
-from rumahiot_gudang.apps.sidik_module.decorator import authentication_required, post_method_required
+from rumahiot_gudang.apps.sidik_module.decorator import authentication_required, post_method_required, admin_authentication_required
 
 # Create your views here.
+
+# Store new supported sensor
+@csrf_exempt
+@post_method_required
+@admin_authentication_required
+def store_new_supported_sensor(request, user):
+
+    # Gudang classes
+    rg = ResponseGenerator()
+    db = GudangMongoDB()
+
+    try:
+        # Verify JSON structure
+        j = json.loads(request.body.decode('utf-8'))
+
+    except TypeError:
+        response_data = rg.error_response_generator(400, "One of the request inputs is not valid")
+        return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
+    except ValueError:
+        response_data = rg.error_response_generator(400, "Malformed JSON")
+        return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
+    else:
+        # Verify the data format for added board
+        try:
+            added_sensor = NewSupportedSensorResource(**j)
+        except TypeError:
+            response_data = rg.error_response_generator(400, "One of the request inputs is not valid")
+            return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
+        except ValueError:
+            response_data = rg.error_response_generator(400, "Malformed JSON")
+            return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
+        else:
+            # Check for library variable initialization
+            try:
+                lib = LibraryVariableInitializationResource(**added_sensor.library_variable_initialization)
+            except TypeError:
+                response_data = rg.error_response_generator(400, "One of the request inputs is not valid")
+                return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
+            except ValueError:
+                response_data = rg.error_response_generator(400, "Malformed JSON")
+                return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
+            else:
+                # Check for sensor pin mapping
+                for sensor_pin_mapping in added_sensor.sensor_pin_mappings:
+                    try:
+                        sensor_mapping = NewSupportedSensorMappingResource(**sensor_pin_mapping)
+                    except TypeError:
+                        response_data = rg.error_response_generator(400, "One of the request inputs is not valid")
+                        return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
+                    except ValueError:
+                        response_data = rg.error_response_generator(400, "Malformed JSON")
+                        return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
+
+                # Check for master sensors
+                for master_sensor in added_sensor.master_sensors:
+                    try:
+                        sensor = MasterSensorResource(**master_sensor)
+                    except TypeError:
+                        response_data = rg.error_response_generator(400, "One of the request inputs is not valid")
+                        return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
+                    except ValueError:
+                        response_data = rg.error_response_generator(400, "Malformed JSON")
+                        return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
+
+                # Store new supported sensor
+                db.put_new_supported_sensor(library_dependencies=added_sensor.library_dependencies, library_initialization_command=added_sensor.library_initialization_command,
+                                            library_variable_initialization=added_sensor.library_variable_initialization,
+                                            master_sensors=added_sensor.master_sensors, sensor_image_source=added_sensor.sensor_image_source,
+                                            sensor_image_url=added_sensor.sensor_image_url, sensor_model=added_sensor.sensor_model,
+                                            sensor_pin_mappings=added_sensor.sensor_pin_mappings)
+
+                response_data = rg.success_response_generator(200, "New supported sensor successfully added")
+                return HttpResponse(json.dumps(response_data), content_type="application/json", status=200)
+
+
+# Store new supported board
+@csrf_exempt
+@post_method_required
+@admin_authentication_required
+def store_new_supported_board(request, user):
+
+    # Gudang Classes
+    rg = ResponseGenerator()
+    db = GudangMongoDB()
+
+    try:
+        # Verify JSON structure
+        j = json.loads(request.body.decode('utf-8'))
+
+    except TypeError:
+        response_data = rg.error_response_generator(400, "One of the request inputs is not valid")
+        return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
+    except ValueError:
+        response_data = rg.error_response_generator(400, "Malformed JSON")
+        return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
+    else:
+
+        # Verify the data format for added board
+        try :
+            added_board = NewSupportedBoardResource(**j)
+        except TypeError:
+            response_data = rg.error_response_generator(400, "One of the request inputs is not valid")
+            return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
+        except ValueError:
+            response_data = rg.error_response_generator(400, "Malformed JSON")
+            return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
+        else:
+            # Verify the sensor pin configuration
+            # Todo : Make sure all of the data is in correct format
+            for board_pin in added_board.board_pins :
+                try :
+                    pin = NewSupportedBoardPinResource(**board_pin)
+                except TypeError:
+                    response_data = rg.error_response_generator(400, "One of the request inputs is not valid")
+                    return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
+                except ValueError:
+                    response_data = rg.error_response_generator(400, "Malformed JSON")
+                    return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
+
+            # All data successfully verified in this step
+            # Put new board in db
+            db.put_new_supported_board(board_name=added_board.board_name, chip=added_board.chip, manufacturer=added_board.manufacturer,
+                                       board_specification=added_board.board_specification, board_image=added_board.board_image,
+                                       board_image_source=added_board.board_image_source, board_pins=added_board.board_pins, s3_path=added_board.s3_path,
+                                       version=added_board.version)
+
+            response_data = rg.success_response_generator(200, "New board successfully added")
+            return HttpResponse(json.dumps(response_data), content_type="application/json",status=200)
+
 
 # Handle device data xlsx export
 # Export process gonna be handled asynchronously

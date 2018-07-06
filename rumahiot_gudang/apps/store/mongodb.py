@@ -390,3 +390,167 @@ class GudangMongoDB:
         col.remove({
             'device_uuid': device_uuid
         })
+
+        # (self, board_name, chip, manufacturer, board_specification, board_image,
+        #  board_image_source, board_pins, version, s3_path):
+
+    # Add new supported board
+    def put_new_supported_board(self, board_name, chip, manufacturer, board_specification, board_image, board_image_source, board_pins, version, s3_path):
+        # UUIDs
+        board_uuid = uuid4().hex
+
+        # Datas
+        supported_board_data = {
+            'board_uuid': board_uuid,
+            'board_name': board_name,
+            'chip': chip,
+            'manufacturer': manufacturer,
+            'board_specification' : board_specification,
+            'board_image': board_image,
+            'board_image_source': board_image_source,
+            'board_pins': board_pins
+        }
+
+        gampang_template_data = {
+            'gampang_template_uuid': uuid4().hex,
+            'supported_board_uuid': board_uuid,
+            'time_added': datetime.datetime.now().timestamp(),
+            'version': version,
+            's3_path': s3_path
+
+        }
+
+        # Create supported board
+        self.put_data(database=RUMAHIOT_GUDANG_DATABASE, collection=RUMAHIOT_GUDANG_SUPPORTED_BOARD_COLLECTION, data = supported_board_data)
+        # Create gampang template mapping
+        self.put_data(database=RUMAHIOT_GUDANG_DATABASE, collection=RUMAHIOT_GUDANG_GAMPANG_TEMPLATES_COLLECTION, data=gampang_template_data)
+
+    # Remove supported board and it's template mapping
+    def remove_supported_board(self, board_uuid):
+        db = self.client[RUMAHIOT_GUDANG_DATABASE]
+
+        board_col = db[RUMAHIOT_GUDANG_SUPPORTED_BOARD_COLLECTION]
+        template_col = db[RUMAHIOT_GUDANG_GAMPANG_TEMPLATES_COLLECTION]
+
+        # Remove the board and template
+        board_col.remove({
+            'board_uuid': board_uuid
+        })
+        template_col.remove({
+            'supported_board_uuid': board_uuid
+        })
+
+    # Get device by board_uuid
+    def get_device_by_board_uuid(self, board_uuid):
+
+        db = self.client[RUMAHIOT_GUDANG_DATABASE]
+        col = db[RUMAHIOT_GUDANG_USERS_DEVICE_COLLECTION]
+        result = col.find({
+            'supported_board_uuid': board_uuid
+        })
+
+        return result
+
+    # Update supported board configuration
+    def update_supported_board(self, board_uuid, board_name, chip, manufacturer, board_specification, board_image, board_image_source, board_pins, version, s3_path):
+
+        db = self.client[RUMAHIOT_GUDANG_DATABASE]
+        board_col = db[RUMAHIOT_GUDANG_SUPPORTED_BOARD_COLLECTION]
+        template_col = db[RUMAHIOT_GUDANG_GAMPANG_TEMPLATES_COLLECTION]
+
+        # Update the board
+        board_col.update_one({'board_uuid' : board_uuid}, {'$set': {
+            'board_name': board_name,
+            'chip': chip,
+            'manufacturer': manufacturer,
+            'board_specification': board_specification,
+            'board_image': board_image,
+            'board_image_source': board_image_source,
+            'board_pins': board_pins
+        }})
+
+        # Update the template
+        template_col.update_one({'supported_board_uuid': board_uuid}, {'$set': {
+            'version': version,
+            's3_path': s3_path
+        }})
+
+
+    def get_all_detailed_supported_board(self):
+
+        db = self.client[RUMAHIOT_GUDANG_DATABASE]
+        board_col = db[RUMAHIOT_GUDANG_SUPPORTED_BOARD_COLLECTION]
+        template_col = db[RUMAHIOT_GUDANG_GAMPANG_TEMPLATES_COLLECTION]
+
+        # Detailed supported board object
+        detailed_supported_boards = []
+
+        # Find board and template
+        board_results = board_col.find({})
+        for board_result in board_results:
+            # Get the template
+            template = template_col.find_one({
+                'supported_board_uuid' : board_result['board_uuid']
+            })
+
+            detailed_supported_board = {
+                'board_uuid' : board_result['board_uuid'],
+                'board_name' : board_result['board_name'],
+                'chip' : board_result['chip'],
+                'manufacturer' : board_result['manufacturer'],
+                'board_specification' : board_result['board_specification'],
+                'board_image' : board_result['board_image'],
+                'board_image_source' : board_result['board_image_source'],
+                'board_pins' : board_result['board_pins'],
+                'gampang_template_uuid' : template['gampang_template_uuid'],
+                'time_added' : template['time_added'],
+                'version' : template['version'],
+                's3_path' : template['s3_path']
+            }
+
+            # Append to the main object
+            detailed_supported_boards.append(detailed_supported_board)
+
+        return detailed_supported_boards
+
+    # Add new supported sensor
+    def put_new_supported_sensor(self, library_dependencies, library_variable_initialization,
+                                 library_initialization_command, sensor_pin_mappings, sensor_model,
+                                 sensor_image_url, sensor_image_source, master_sensors):
+
+        # Master uuid
+        master_sensor_reference_uuid = uuid4().hex
+        # Uuids for master sensor
+        master_sensor_uuids = []
+
+        for master_sensor in master_sensors:
+            # Uuid for master sensor
+            master_sensor_uuid = uuid4().hex
+            master_sensor_data = {
+                'master_sensor_uuid': master_sensor_uuid,
+                'master_sensor_name': master_sensor.master_sensor_name,
+                'master_sensor_default_unit_name': master_sensor.master_sensor_default_unit_name,
+                'master_sensor_default_unit_symbol': master_sensor.master_sensor_default_unit_symbol,
+                'master_sensor_library_function': master_sensor.master_sensor_library_function,
+                'master_sensor_reference_uuid': master_sensor_reference_uuid
+            }
+            # Put master sensor
+            self.put_data(database=RUMAHIOT_GUDANG_DATABASE, collection=RUMAHIOT_GUDANG_MASTER_SENSORS_COLLECTION, data=master_sensor_data)
+            master_sensor_uuids.append(master_sensor_uuid)
+
+        master_sensor_reference_data = {
+            'master_sensor_reference_uuid' : master_sensor_reference_uuid,
+            'library_dependencies': library_dependencies,
+            'library_variable_initialization': library_variable_initialization,
+            'library_initialization_command': library_initialization_command,
+            'sensor_pin_mappings': sensor_pin_mappings,
+            'sensor_model': sensor_model,
+            'sensor_image_url': sensor_image_url,
+            'master_sensor_uuids': master_sensor_uuids,
+            'sensor_image_source': sensor_image_source
+        }
+
+        # Put master sensor reference
+        self.put_data(database=RUMAHIOT_GUDANG_DATABASE, collection=RUMAHIOT_GUDANG_MASTER_SENSOR_REFERENCES_COLLECTION, data=master_sensor_reference_data)
+
+
