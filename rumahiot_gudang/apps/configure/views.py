@@ -3,7 +3,9 @@ import json
 from django.shortcuts import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 
-from rumahiot_gudang.apps.store.resource import UpdateDeviceDetailResource, DevicePositionResource, UpdateSupportedBoardResource, NewSupportedBoardPinResource
+from rumahiot_gudang.apps.store.resource import UpdateDeviceDetailResource, DevicePositionResource, \
+    UpdateSupportedBoardResource, NewSupportedBoardPinResource, UpdateMasterSensorResource, \
+    UpdateSupportedSensorResource, LibraryVariableInitializationResource, NewSupportedSensorMappingResource
 
 from rumahiot_gudang.apps.configure.forms import UpdateUserSensorDetailForm
 from rumahiot_gudang.apps.store.mongodb import GudangMongoDB
@@ -168,6 +170,31 @@ def remove_supported_board(request, user, board_uuid):
         response_data = rg.error_response_generator(400, 'Board being used by one or more user device')
         return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
 
+@get_method_required
+@admin_authentication_required
+def remove_supported_sensor(request, user, master_sensor_reference_uuid):
+
+    # Gudang class
+    rg = ResponseGenerator()
+    db = GudangMongoDB()
+
+    master_sensor_reference = db.get_master_sensor_reference_by_uuid(master_sensor_reference_uuid=master_sensor_reference_uuid)
+    if (master_sensor_reference) :
+        # Check master sensor uuid
+        for master_sensor_uuid in master_sensor_reference['master_sensor_uuids']:
+            user_sensor = db.get_user_sensor_by_master_sensor(master_sensor_uuid=master_sensor_uuid)
+            if not user_sensor:
+                # Remove the supported sensor
+                db.remove_supported_sensor(master_sensor_reference_uuid=master_sensor_reference_uuid)
+                response_data = rg.success_response_generator(200, 'Sensor successfully removed')
+                return HttpResponse(json.dumps(response_data), content_type='application/json', status=200)
+            else:
+                response_data = rg.error_response_generator(400, 'Sensor being used by one or more user device')
+                return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
+    else:
+        response_data = rg.error_response_generator(400, 'Invalid supported sensor UUID')
+        return HttpResponse(json.dumps(response_data), content_type='application/json', status=400)
+
 @csrf_exempt
 @post_method_required
 @admin_authentication_required
@@ -193,7 +220,7 @@ def update_supported_board(request, user):
         try:
             updated_board = UpdateSupportedBoardResource(**j)
         except TypeError:
-            response_data = rg.error_response_generator(400, "One of the request inputs is not valid")
+            response_data = rg.error_response_generator(400, "One of the board data structure is not valid")
             return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
         except ValueError:
             response_data = rg.error_response_generator(400, "Malformed JSON")
@@ -207,7 +234,7 @@ def update_supported_board(request, user):
                     try:
                         pin = NewSupportedBoardPinResource(**board_pin)
                     except TypeError:
-                        response_data = rg.error_response_generator(400, "One of the request inputs is not valid")
+                        response_data = rg.error_response_generator(400, "One of the board pin data structure is not valid")
                         return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
                     except ValueError:
                         response_data = rg.error_response_generator(400, "Malformed JSON")
@@ -220,10 +247,103 @@ def update_supported_board(request, user):
                                            board_image_source=updated_board.board_image_source, board_pins=updated_board.board_pins, s3_path=updated_board.s3_path,
                                            version=updated_board.version)
 
-                response_data = rg.success_response_generator(200, "Board configuration successfully updated")
+                response_data = rg.success_response_generator(200, "Supported board configuration successfully updated")
                 return HttpResponse(json.dumps(response_data), content_type="application/json", status=200)
             else:
                 response_data = rg.error_response_generator(400, "Invalid board UUID")
                 return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
 
+@csrf_exempt
+@post_method_required
+@admin_authentication_required
+def update_supported_sensor(request, user):
+    # Gudang Classes
+    rg = ResponseGenerator()
+    db = GudangMongoDB()
 
+    try:
+        # Verify JSON structure
+        j = json.loads(request.body.decode('utf-8'))
+
+    except TypeError:
+        response_data = rg.error_response_generator(400, "One of the request inputs is not valid")
+        return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
+    except ValueError:
+        response_data = rg.error_response_generator(400, "Malformed JSON")
+        return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
+    else:
+        # Verify the data format for updated sensor
+        try:
+            updated_sensor = UpdateSupportedSensorResource(**j)
+        except TypeError:
+            response_data = rg.error_response_generator(400, "One of the sensor data structure is not valid")
+            return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
+        except ValueError:
+            response_data = rg.error_response_generator(400, "Malformed JSON")
+            return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
+        else:
+            # Check for library variable initialization
+            try:
+                lib = LibraryVariableInitializationResource(**updated_sensor.library_variable_initialization)
+            except TypeError:
+                response_data = rg.error_response_generator(400, "One of the sensor library structure is not valid")
+                return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
+            except ValueError:
+                response_data = rg.error_response_generator(400, "Malformed JSON")
+                return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
+            else:
+                # Check for sensor pin mapping
+                for sensor_pin_mapping in updated_sensor.sensor_pin_mappings:
+                    try:
+                        sensor_mapping = NewSupportedSensorMappingResource(**sensor_pin_mapping)
+                    except TypeError:
+                        response_data = rg.error_response_generator(400, "One of the sensor pin structure is not valid")
+                        return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
+                    except ValueError:
+                        response_data = rg.error_response_generator(400, "Malformed JSON")
+                        return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
+
+                # Check for master sensors
+                for master_sensor in updated_sensor.master_sensors:
+                    try:
+                        sensor = UpdateMasterSensorResource(**master_sensor)
+                    except TypeError:
+                        response_data = rg.error_response_generator(400, "One of the master sensor data structure is not valid")
+                        return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
+                    except ValueError:
+                        response_data = rg.error_response_generator(400, "Malformed JSON")
+                        return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
+
+
+                # Check for master sensor configuration
+                master_sensor_reference = db.get_master_sensor_reference_by_uuid(master_sensor_reference_uuid=updated_sensor.master_sensor_reference_uuid)
+                if (master_sensor_reference) :
+                    # Keep the uuids
+                    master_sensor_uuids = []
+                    for master_sensor in updated_sensor.master_sensors:
+                        master_sensor_uuids.append(master_sensor['master_sensor_uuid'])
+
+                    # Sort all the uuid list
+                    master_sensor_uuids.sort()
+                    master_sensor_reference['master_sensor_uuids'].sort()
+
+                    # Compare the uuids
+                    if master_sensor_uuids == master_sensor_reference['master_sensor_uuids'] :
+                        # Update data on the database
+                        db.update_supported_sensor(master_sensor_reference_uuid=updated_sensor.master_sensor_reference_uuid,
+                                                   library_dependencies=updated_sensor.library_dependencies,
+                                                   library_variable_initialization=updated_sensor.library_variable_initialization,
+                                                   library_initialization_command=updated_sensor.library_initialization_command,
+                                                   master_sensors=updated_sensor.master_sensors, sensor_image_source=updated_sensor.sensor_image_source,
+                                                   sensor_image_url=updated_sensor.sensor_image_url, sensor_model=updated_sensor.sensor_model,
+                                                   sensor_pin_mappings=updated_sensor.sensor_pin_mappings)
+
+                        response_data = rg.success_response_generator(200, "Supported sensor configuration successfully updated")
+                        return HttpResponse(json.dumps(response_data), content_type="application/json", status=200)
+
+                    else:
+                        response_data = rg.error_response_generator(400, "Invalid sensor configuration")
+                        return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
+                else:
+                    response_data = rg.error_response_generator(400, "Invalid master sensor reference UUID")
+                    return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)

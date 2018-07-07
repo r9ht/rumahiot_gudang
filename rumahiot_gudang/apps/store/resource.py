@@ -1,5 +1,31 @@
 # Define device resource model in here so the structure can be verified
 
+# Update supported sensor resource
+class UpdateSupportedSensorResource(object):
+    def __init__(self, master_sensor_reference_uuid, library_dependencies, library_variable_initialization,
+                 library_initialization_command, sensor_pin_mappings,
+                 sensor_model, sensor_image_url, sensor_image_source, master_sensors):
+        self.master_sensor_reference_uuid = master_sensor_reference_uuid
+        self.library_dependencies = library_dependencies
+        self.library_variable_initialization = library_variable_initialization
+        self.library_initialization_command = library_initialization_command
+        self.sensor_pin_mappings = sensor_pin_mappings
+        self.sensor_model = sensor_model
+        self.sensor_image_url = sensor_image_url
+        self.sensor_image_source = sensor_image_source
+        self.master_sensors = master_sensors
+
+# Update master sensor resource
+class UpdateMasterSensorResource(object):
+    def __init__(self,master_sensor_uuid, master_sensor_name, master_sensor_default_unit_name,
+                 master_sensor_default_unit_symbol, master_sensor_library_function):
+
+        self.master_sensor_uuid = master_sensor_uuid
+        self.master_sensor_name = master_sensor_name
+        self.master_sensor_default_unit_name = master_sensor_default_unit_name
+        self.master_sensor_default_unit_symbol = master_sensor_default_unit_symbol
+        self.master_sensor_library_function = master_sensor_library_function
+
 # Add new supported sensor resouce
 class NewSupportedSensorResource(object):
     def __init__(self, library_dependencies, library_variable_initialization, library_initialization_command, sensor_pin_mappings,
@@ -30,14 +56,12 @@ class LibraryVariableInitializationResource(object):
 # Master sensor for adding new supported sensor
 class MasterSensorResource(object):
     def __init__(self, master_sensor_name, master_sensor_default_unit_name,
-                 master_sensor_default_unit_symbol, master_sensor_library_function,
-                 master_sensor_reference_uuid):
+                 master_sensor_default_unit_symbol, master_sensor_library_function):
 
         self.master_sensor_name = master_sensor_name
         self.master_sensor_default_unit_name = master_sensor_default_unit_name
         self.master_sensor_default_unit_symbol = master_sensor_default_unit_symbol
         self.master_sensor_library_function = master_sensor_library_function
-        self.master_sensor_reference_uuid = master_sensor_reference_uuid
 
 # Add new board resource
 class NewSupportedBoardResource(object):

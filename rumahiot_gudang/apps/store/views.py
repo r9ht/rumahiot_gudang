@@ -49,7 +49,7 @@ def store_new_supported_sensor(request, user):
         try:
             added_sensor = NewSupportedSensorResource(**j)
         except TypeError:
-            response_data = rg.error_response_generator(400, "One of the request inputs is not valid")
+            response_data = rg.error_response_generator(400, "One of the sensor data structure is not valid")
             return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
         except ValueError:
             response_data = rg.error_response_generator(400, "Malformed JSON")
@@ -59,7 +59,7 @@ def store_new_supported_sensor(request, user):
             try:
                 lib = LibraryVariableInitializationResource(**added_sensor.library_variable_initialization)
             except TypeError:
-                response_data = rg.error_response_generator(400, "One of the request inputs is not valid")
+                response_data = rg.error_response_generator(400, "One of the library data structure is not valid")
                 return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
             except ValueError:
                 response_data = rg.error_response_generator(400, "Malformed JSON")
@@ -70,7 +70,7 @@ def store_new_supported_sensor(request, user):
                     try:
                         sensor_mapping = NewSupportedSensorMappingResource(**sensor_pin_mapping)
                     except TypeError:
-                        response_data = rg.error_response_generator(400, "One of the request inputs is not valid")
+                        response_data = rg.error_response_generator(400, "One of the sensor pin mapping structure is not valid")
                         return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
                     except ValueError:
                         response_data = rg.error_response_generator(400, "Malformed JSON")
@@ -81,7 +81,7 @@ def store_new_supported_sensor(request, user):
                     try:
                         sensor = MasterSensorResource(**master_sensor)
                     except TypeError:
-                        response_data = rg.error_response_generator(400, "One of the request inputs is not valid")
+                        response_data = rg.error_response_generator(400, "One of the sensor master data structure is not valid")
                         return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
                     except ValueError:
                         response_data = rg.error_response_generator(400, "Malformed JSON")
@@ -96,7 +96,6 @@ def store_new_supported_sensor(request, user):
 
                 response_data = rg.success_response_generator(200, "New supported sensor successfully added")
                 return HttpResponse(json.dumps(response_data), content_type="application/json", status=200)
-
 
 # Store new supported board
 @csrf_exempt
@@ -113,7 +112,7 @@ def store_new_supported_board(request, user):
         j = json.loads(request.body.decode('utf-8'))
 
     except TypeError:
-        response_data = rg.error_response_generator(400, "One of the request inputs is not valid")
+        response_data = rg.error_response_generator(400, "One of the request inputs is not valid 1")
         return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
     except ValueError:
         response_data = rg.error_response_generator(400, "Malformed JSON")
@@ -124,7 +123,7 @@ def store_new_supported_board(request, user):
         try :
             added_board = NewSupportedBoardResource(**j)
         except TypeError:
-            response_data = rg.error_response_generator(400, "One of the request inputs is not valid")
+            response_data = rg.error_response_generator(400, "One of the request inputs is not valid 2")
             return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
         except ValueError:
             response_data = rg.error_response_generator(400, "Malformed JSON")
@@ -136,7 +135,7 @@ def store_new_supported_board(request, user):
                 try :
                     pin = NewSupportedBoardPinResource(**board_pin)
                 except TypeError:
-                    response_data = rg.error_response_generator(400, "One of the request inputs is not valid")
+                    response_data = rg.error_response_generator(400, "One of the request inputs is not valid 3")
                     return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
                 except ValueError:
                     response_data = rg.error_response_generator(400, "Malformed JSON")

@@ -175,6 +175,13 @@ class GudangMongoDB:
         result = col.find_one({'user_sensor_uuid': user_sensor_uuid})
         return result
 
+    # get user sensor by master sensor
+    def get_user_sensor_by_master_sensor(self, master_sensor_uuid):
+        db = self.client[RUMAHIOT_GUDANG_DATABASE]
+        col = db[RUMAHIOT_GUDANG_USER_SENSORS_COLLECTION]
+        result = col.find_one({'master_sensor_uuid': master_sensor_uuid})
+        return result
+
     # get master sensor using master_sensor_uuid
     # input parameter: mster_sensor_uuid(string)
     def get_master_sensor_by_uuid(self, master_sensor_uuid):
@@ -528,10 +535,10 @@ class GudangMongoDB:
             master_sensor_uuid = uuid4().hex
             master_sensor_data = {
                 'master_sensor_uuid': master_sensor_uuid,
-                'master_sensor_name': master_sensor.master_sensor_name,
-                'master_sensor_default_unit_name': master_sensor.master_sensor_default_unit_name,
-                'master_sensor_default_unit_symbol': master_sensor.master_sensor_default_unit_symbol,
-                'master_sensor_library_function': master_sensor.master_sensor_library_function,
+                'master_sensor_name': master_sensor['master_sensor_name'],
+                'master_sensor_default_unit_name': master_sensor['master_sensor_default_unit_name'],
+                'master_sensor_default_unit_symbol': master_sensor['master_sensor_default_unit_symbol'],
+                'master_sensor_library_function': master_sensor['master_sensor_library_function'],
                 'master_sensor_reference_uuid': master_sensor_reference_uuid
             }
             # Put master sensor
@@ -552,5 +559,94 @@ class GudangMongoDB:
 
         # Put master sensor reference
         self.put_data(database=RUMAHIOT_GUDANG_DATABASE, collection=RUMAHIOT_GUDANG_MASTER_SENSOR_REFERENCES_COLLECTION, data=master_sensor_reference_data)
+
+    # Remove supported sensor
+    def remove_supported_sensor(self, master_sensor_reference_uuid):
+        db = self.client[RUMAHIOT_GUDANG_DATABASE]
+
+        master_sensor = db[RUMAHIOT_GUDANG_MASTER_SENSORS_COLLECTION]
+        master_sensor_reference = db[RUMAHIOT_GUDANG_MASTER_SENSOR_REFERENCES_COLLECTION]
+
+        # Remove master sensor
+        master_sensor.remove({
+            'master_sensor_reference_uuid': master_sensor_reference_uuid
+        })
+        # Remove master sensor reference
+        master_sensor_reference.remove({
+            'master_sensor_reference_uuid': master_sensor_reference_uuid
+        })
+
+    # Get supported sensor
+    def get_all_detailed_supported_sensor(self):
+
+        # Supported sensor main object
+        supported_sensors = []
+
+        master_sensor_references = self.get_all_master_sensor_reference()
+        # Iterate through master sensor references
+        for master_sensor_reference in master_sensor_references :
+            sensor_reference = {
+                'master_sensor_reference_uuid': master_sensor_reference['master_sensor_reference_uuid'],
+                'library_dependencies': master_sensor_reference['library_dependencies'],
+                'library_variable_initialization': master_sensor_reference['library_variable_initialization'],
+                'library_initialization_command': master_sensor_reference['library_initialization_command'],
+                'sensor_pin_mappings': master_sensor_reference['sensor_pin_mappings'],
+                'sensor_model': master_sensor_reference['sensor_model'],
+                'sensor_image_url': master_sensor_reference['sensor_image_url'],
+                'sensor_image_source': master_sensor_reference['sensor_image_source'],
+                'master_sensors': []
+            }
+            for master_sensor_uuid in master_sensor_reference['master_sensor_uuids']:
+                master_sensor = self.get_master_sensor_by_uuid(master_sensor_uuid=master_sensor_uuid)
+                master_sensor_data = {
+                    'master_sensor_uuid': master_sensor['master_sensor_uuid'],
+                    'master_sensor_name': master_sensor['master_sensor_name'],
+                    'master_sensor_default_unit_name': master_sensor['master_sensor_default_unit_name'],
+                    'master_sensor_library_function': master_sensor['master_sensor_library_function'],
+                    'master_sensor_default_unit_symbol': master_sensor['master_sensor_default_unit_symbol']
+                }
+                # Append to master sensor reference object
+                sensor_reference['master_sensors'].append(master_sensor_data)
+
+            # Append to main object
+            supported_sensors.append(sensor_reference)
+
+        return supported_sensors
+
+    # Update supported sensor
+    def update_supported_sensor(self, master_sensor_reference_uuid, library_dependencies, library_variable_initialization,
+                                 library_initialization_command, sensor_pin_mappings, sensor_model,
+                                 sensor_image_url, sensor_image_source, master_sensors):
+
+
+        db = self.client[RUMAHIOT_GUDANG_DATABASE]
+
+        # Update master sensor reference
+        master_sensor_reference_col = db[RUMAHIOT_GUDANG_MASTER_SENSOR_REFERENCES_COLLECTION]
+        master_sensor_reference_col.update_one({'master_sensor_reference_uuid': master_sensor_reference_uuid}, {'$set': {
+            'library_dependencies': library_dependencies,
+            'library_variable_initialization': library_variable_initialization,
+            'library_initialization_command': library_initialization_command,
+            'sensor_pin_mappings': sensor_pin_mappings,
+            'sensor_model': sensor_model,
+            'sensor_image_url': sensor_image_url,
+            'sensor_image_source': sensor_image_source
+        }})
+
+        # Update master sensor
+        for master_sensor in master_sensors:
+            master_sensor_col = db[RUMAHIOT_GUDANG_MASTER_SENSORS_COLLECTION]
+            master_sensor_col.update_one({'master_sensor_uuid': master_sensor['master_sensor_uuid']}, {'$set': {
+                'master_sensor_name': master_sensor['master_sensor_name'],
+                'master_sensor_default_unit_name': master_sensor['master_sensor_default_unit_name'],
+                'master_sensor_library_function': master_sensor['master_sensor_library_function'],
+                'master_sensor_default_unit_symbol': master_sensor['master_sensor_default_unit_symbol']
+            }})
+
+
+
+
+
+
 
 

@@ -1044,3 +1044,22 @@ def retrieve_detailed_supported_board_list(request, user):
     # Generate response object
     response_data = rg.data_response_generator(data)
     return HttpResponse(json.dumps(response_data), content_type='application/json', status=200)
+
+@get_method_required
+@admin_authentication_required
+def retrieve_detailed_supported_sensor_list(request, user):
+
+    # Gudang class
+    rg = ResponseGenerator()
+    db = GudangMongoDB()
+
+    all_detailed_supported_sensor = db.get_all_detailed_supported_sensor()
+
+    data = {
+        'detailed_supported_sensors': all_detailed_supported_sensor,
+        'detailed_supported_sensors_count': len(all_detailed_supported_sensor)
+    }
+
+    # Generate response object
+    response_data = rg.data_response_generator(data)
+    return HttpResponse(json.dumps(response_data), content_type='application/json', status=200)
