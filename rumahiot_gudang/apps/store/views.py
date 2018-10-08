@@ -112,7 +112,7 @@ def store_new_supported_board(request, user):
         j = json.loads(request.body.decode('utf-8'))
 
     except TypeError:
-        response_data = rg.error_response_generator(400, "One of the request inputs is not valid 1")
+        response_data = rg.error_response_generator(400, "One of the request inputs is not valid")
         return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
     except ValueError:
         response_data = rg.error_response_generator(400, "Malformed JSON")
@@ -123,7 +123,7 @@ def store_new_supported_board(request, user):
         try :
             added_board = NewSupportedBoardResource(**j)
         except TypeError:
-            response_data = rg.error_response_generator(400, "One of the request inputs is not valid 2")
+            response_data = rg.error_response_generator(400, "One of the board data structure is not valid")
             return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
         except ValueError:
             response_data = rg.error_response_generator(400, "Malformed JSON")
@@ -135,7 +135,7 @@ def store_new_supported_board(request, user):
                 try :
                     pin = NewSupportedBoardPinResource(**board_pin)
                 except TypeError:
-                    response_data = rg.error_response_generator(400, "One of the request inputs is not valid 3")
+                    response_data = rg.error_response_generator(400, "One of the board pin data structure is not valid")
                     return HttpResponse(json.dumps(response_data), content_type="application/json", status=400)
                 except ValueError:
                     response_data = rg.error_response_generator(400, "Malformed JSON")

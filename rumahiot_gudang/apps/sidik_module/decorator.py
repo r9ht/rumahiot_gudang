@@ -55,7 +55,7 @@ def authentication_required(function):
         try:
             token = requtils.get_access_token(request)
         except KeyError:
-            response_data = rg.error_response_generator(401, 'Please define the authorization header')
+            response_data = rg.error_response_generator(1, 'Please define the authorization header')
             return HttpResponse(json.dumps(response_data), content_type='application/json', status=401)
         else:
             if token['token'] != None:
@@ -65,10 +65,10 @@ def authentication_required(function):
                     # Return the user object too
                     return function(request, user, *args, **kwargs)
                 else:
-                    response_data = rg.error_response_generator(401, user['error'])
+                    response_data = rg.error_response_generator(1, user['error'])
                     return HttpResponse(json.dumps(response_data), content_type='application/json', status=401)
             else:
-                response_data = rg.error_response_generator(401, token['error'])
+                response_data = rg.error_response_generator(1, token['error'])
                 return HttpResponse(json.dumps(response_data), content_type="application/json", status=401)
 
     token_check.__doc__ = function.__doc__
@@ -89,7 +89,7 @@ def admin_authentication_required(function):
         try:
             token = requtils.get_access_token(request)
         except KeyError:
-            response_data = rg.error_response_generator(401, 'Please define the authorization header')
+            response_data = rg.error_response_generator(2, 'Please define the authorization header')
             return HttpResponse(json.dumps(response_data), content_type='application/json', status=401)
         else:
             if token['token'] != None:
@@ -99,10 +99,10 @@ def admin_authentication_required(function):
                     # Return the user object too
                     return function(request, user, *args, **kwargs)
                 else:
-                    response_data = rg.error_response_generator(401, user['error'])
+                    response_data = rg.error_response_generator(2, user['error'])
                     return HttpResponse(json.dumps(response_data), content_type='application/json', status=401)
             else:
-                response_data = rg.error_response_generator(401, token['error'])
+                response_data = rg.error_response_generator(2, token['error'])
                 return HttpResponse(json.dumps(response_data), content_type="application/json", status=401)
 
     token_check.__doc__ = function.__doc__
