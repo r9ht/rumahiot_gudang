@@ -47,7 +47,7 @@ Unidecode==1.0.22
 uritemplate==3.0.0
 urllib3==1.22
 vine==1.1.4
-Werkzeug==0.12
+Werkzeug==0.15.3
 wsgi-request-logger==0.4.6
 XlsxWriter==1.0.5
 zappa==0.45.1
