@@ -16,7 +16,7 @@ durationpy==0.5
 future==0.16.0
 google-api-python-client==1.6.5
 hjson==3.0.1
-httplib2==0.10.3
+httplib2==0.18.0
 idna==2.6
 Jinja2==2.10
 jmespath==0.9.3
